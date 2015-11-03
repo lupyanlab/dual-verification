@@ -2,49 +2,67 @@
 import os
 import random
 
+import unipath
+
 from psychopy import core, event, visual, data, gui, misc, sound
 
-def enter_subj_info(exp_name, exp_dir, options):
-    """ 
-    Brings up a GUI in which to enter all the subject info. 
+def get_subj_info(gui_yaml, check_exists):
+    """ Create a psychopy.gui from a config file.
+
+    Parameters
+    ----------
+    gui_yaml: str, Path to config file in yaml format.
+    check_exists: function, Computes a data file path from the gui data, and
+        checks for its existence. If the file exists, an error is displayed.
     """
-    def inputsOK(options,expInfo):
-        for curOption in sorted(options.items()):
-            if curOption[1]['options'] != 'any' and expInfo[curOption[1]['name']] not in curOption[1]['options']:
-                return [False,"The option you entered for " + curOption[1]['name'] + " is not in the allowable list of options: " + str(curOption[1]['options'])]
-        return [True,'']
-    
-    version_pth = os.path.join(exp_dir, exp_name, '_last_params.pickle')
-    
+    with open(gui_yaml, 'r') as f:
+        gui_info = yaml.load(f)
+
+    ordered_fields = [field for _, field in sorted(gui_info.items())]
+
+    # Determine order and tips
+    ordered_names = [field['name'] for field in ordered_fields]
+    field_tips = {field['name']: field['prompt'] for field in ordered_fields}
+
+    # Load the last participant's options or use the defaults
+    last_subj_info = gui_yaml + '.pickle'
     try:
-        expInfo = misc.fromFile(version_pth)
-    except:
-        expInfo={} #make the kind of dictionary that this gui can understand
-        for curOption in sorted(options.items()):
-            expInfo[curOption[1]['name']]=curOption[1]['default']
-    #load the tips
-    tips={}
-    for curOption in sorted(options.items()):
-        tips[curOption[1]['name']]=curOption[1]['prompt']
-    expInfo['date']= data.getDateStr() 
-    expInfo['exp_name']= exp_name
-    dlg = gui.DlgFromDict(expInfo, title=exp_name, fixed=['date','exp_name'],order=[optionName[1]['name'] for optionName in sorted(options.items())],tip=tips)
-    if dlg.OK:
-        misc.toFile(version_pth, expInfo)
-        [success,error] = inputsOK(options,expInfo)
-        if success:
-            return [True,expInfo]
+        gui_data = misc.fromFile(last_subj_info)
+        for yaml_name in ordered_names:
+            if yaml_name not in gui_data:
+                # Invalid pickle
+                raise AssertionError
+    except IOError, AssertionError:
+        gui_data = {field['name']: field['default'] for field in ordered_fields}
+
+    # Set fixed fields
+    gui_data['date'] = data.getDateStr()
+    fixed_fields = ['date', ]
+
+    while True:
+        # Bring up the dialogue
+        dlg = gui.DlgFromDict(gui_data, order=ordered_names,
+                              fixed=fixed_fields, tip=gui_tips)
+
+        if not dlg.OK:
+            core.quit()
+
+        subj_info = dict(gui_data)
+
+        if check_exists(subj_info):
+            popup_error('That subj_id already exists.')
         else:
-            return [False,error]
-    else:
-        core.quit()
+            misc.toFile(last_subj_info, subj_info)
+            break
+
+    return subj_info
 
 def import_trials(fileName, method="sequential", seed=random.randint(1,100)):
 	(stimList,fieldNames)=data.importConditions(fileName,returnFieldNames=True)
 	trials = data.TrialHandler(stimList,1,method=method,seed=seed)
 	return (trials,fieldNames)
 
-def show_text(win, textToShow, color=[-1,-1,-1], waitForKey=True, 
+def show_text(win, textToShow, color=[-1,-1,-1], waitForKey=True,
               acceptOnly=0, inputDevice="keyboard", mouse=False, pos=[0,0],
               scale=1):
 	global event
@@ -83,10 +101,10 @@ def show_text(win, textToShow, color=[-1,-1,-1], waitForKey=True,
 			for event in pygame.event.get(): #check responses
 				if mouse:
 					if event.type==pygame.MOUSEBUTTONDOWN:
-						pygame.event.clear() 
+						pygame.event.clear()
 						return
 				if event.type==pygame.KEYDOWN or event.type==pygame.JOYBUTTONDOWN:
-					pygame.event.clear() 
+					pygame.event.clear()
 					return
 
 def popup_error(text):
@@ -97,13 +115,13 @@ def popup_error(text):
 def load_images(image_dir, ext, **kwargs):
     if not isinstance(ext, list):
         ext = [ext,]
-    
+
     image_names = [name for name in os.listdir(image_dir) if name[-3:] in ext]
     images = {}
     for img_name in image_names:
         img_path = os.path.join(image_dir, img_name)
         images[img_name] = visual.ImageStim(image=img_path, **kwargs)
-    
+
     return images
 
 def load_sounds(sound_dir, ext):
@@ -112,7 +130,7 @@ def load_sounds(sound_dir, ext):
     for snd_name in sound_names:
         snd_path = os.path.join(sound_dir, snd_name)
         sounds[snd_name] = sound.Sound(snd_path)
-    
+
     return sounds
 
 def write_list_to_file(line, file, close=False):
@@ -120,6 +138,6 @@ def write_list_to_file(line, file, close=False):
     file.write(line)
     file.flush()
     os.fsync(file)
-    
+
     if close:
         file.close()
