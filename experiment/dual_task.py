@@ -2,56 +2,166 @@
 import argparse
 import os
 import yaml
-
 from UserDict import UserDict
 from UserList import UserList
-
 import socket
 import webbrowser
 
+import pandas as pd
 from psychopy import visual, core, event, sound
 
 from labtools.psychopy_helper import *
 from labtools.dynamic_mask import DynamicMask
-from labtools.experiment import get_subj_info, load_sounds
-
-from trial_list import write_trials
+from labtools.trials_functions import *
+# from labtools.experiment import get_subj_info, load_sounds
 
 class Participant(UserDict):
+    """ Store participant data and provide helper functions.
+
+    >>> participant = Participant(subj_id=100, seed=539)
+
+    >>> participants.data_file
+    # data/100.csv
+
+    >>> participant.write_header(['subj_id', 'seed', 'trial', 'is_correct'])
+    # writes "subj_id,seed,trial,is_correct\n" to the data file
+    # and saves input as the order of columns in the output
+
+    >>> participant.write_trial({'trial': 1, 'is_correct': 1})
+    # writes "100,539,1,1\n" to the data file
+    """
+    DATA_DIR = 'data'
+    DATA_DELIMITER = ','
+
+    def __init__(self, **kwargs):
+        self._data_file = None
+        return super(Participant, self).__init__(**kwargs)
+
     @property
     def data_file(self):
-        data_file_fmt = '{subj_id}.csv'
-        return unipath.Path('data', data_file_fmt.format(**self))
+        if not self._data_file:
+            data_file_name = '{subj_id}.csv'.format(**self)
+            self._data_file = unipath.Path(self.DATA_DIR, data_file_name)
+        return self._data_file
+
+    def write_header(self, col_names):
+        self._col_names = col_names
+        self._write_line(self.DATA_DELIMITER.join(col_names))
+
+    def write_trial(self, trial):
+        assert self._col_names, 'write header first to save column order'
+        row_data = dict(self).update(trial)
+        trial_data = [str(row_data[key]) for key in self._col_names]
+        self._write_line(self.DATA_DELIMITER.join(trial_data))
+
+    def _write_line(self, row):
+        with open(self.data_file, 'r') as f:
+            f.write(row + '\n')
+
 
 class Trials(UserList):
-    _columns = [
-        # Subject columns
-        'subj_id',
-        'date',
+    COLUMNS = [
+        # Trial columns
+        'block',
+        'trial',
 
         # Stimuli columns
-        'question_id',
+        'proposition_id',
         'question',
         'cue',
         'mask_type',
         'response_type',
         'pic',
+        'correct_response',
 
         # Response columns
         'response',
         'rt',
         'is_correct',
     ]
-    Trial = namedtuple('Trial', _columns)
+    STIM_DIR = unipath.Path('stimuli')
 
     @classmethod
     def make(cls, **kwargs):
-        # make trials here
-        trials = []
-        return cls(trials)
+        """ Create a list of trials.
 
-    def to_file(self, trials_csv):
-        # write trials here
+        A trial is a dict with values for all keys in self.COLUMNS.
+        """
+        seed = kwargs.get('seed')
+        prng = pd.np.random.RandomState(seed)
+
+        # Balance within subject variables
+        trials = counterbalance({'feat_type': ['visual', 'nonvisual'],
+                                 'mask_type': ['mask', 'nomask']})
+        trials = expand(trials, name='correct_response', values=['yes', 'no'],
+                        ratio=kwargs.get('ratio_yes_correct_responses', 0.75),
+                        seed=seed)
+        trials = expand(trials, name='response_type', values=['prompt', 'pic'],
+                        ratio=kwargs.get('ratio_prompt_response_type', 0.75),
+                        seed=seed)
+
+        # Extend the trials to final length
+        trials = extend(trials, reps=4)
+
+        # Read proposition info
+        propositions_csv = unipath.Path(cls.STIM_DIR, 'propositions.csv')
+        propositions = pd.read_csv(propositions_csv)
+
+        # Select categories to test
+        categories = propositions.cue.unique()
+
+        # Add cue
+        trials['cue'] = prng.choice(categories, len(trials), replace=True)
+
+        # Select proposition id
+        def determine_question(row):
+            is_cue = (propositions.cue == row['cue'])
+            is_feat_type = (propositions.feat_type == row['feat_type'])
+            is_correct_response = (propositions.correct_response ==
+                                   row['correct_response'])
+
+            valid_propositions = (is_cue & is_feat_type & is_correct_response)
+            options = propositions.ix[valid_propositions, ]
+            return prng.choice(options.proposition_id)
+
+        trials['proposition_id'] = trials.apply(determine_question, axis=1)
+
+        # Merge in question
+        trials = trials.merge(propositions)
+
+        # Add in picture
+        def determine_pic(row):
+            if row['response_type'] == 'pic':
+                if row['correct_response'] == 'yes':
+                    return row['cue']
+                else:
+                    distractors = list(categories)
+                    distractors.remove(row['cue'])
+                    return prng.choice(distractors)
+            else:
+                return ''
+
+        trials['pic'] = trials.apply(determine_pic, axis=1)
+
+        # Add columns for response variables
+        for col in ['response', 'rt', 'is_correct']:
+            trials[col] = ''
+
+        # Finishing touches
+        trials = add_block(trials, 50, name='block', start=1, groupby='cue',
+                           seed=seed)
+        trials = smart_shuffle(trials, col='cue', block='block', seed=seed)
+        trials['trial'] = range(len(trials))
+
+        # Reorcder columns
+        trials = trials[cls.COLUMNS]
+
+        return cls(trials.to_dict('record'))
+
+    def write_trials(self, trials_csv):
+        trials = pd.DataFrame.from_records(self)
+        trials = trials[self.COLUMNS]
+        trials.to_csv(trials_csv, index=False)
 
 class Experiment(object):
     def __init__(self, exp_yaml):
@@ -178,7 +288,7 @@ if __name__ == '__main__':
 
     if args.trials:
         trials = Trials.make()
-        trials.to_file('sample_trials.csv')
+        trials.write_trials('sample_trials.csv')
     elif args.instructions:
         experiment = Experiment('exp_info.yaml')
         experiment.show_instructions()
