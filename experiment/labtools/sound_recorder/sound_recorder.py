@@ -27,7 +27,7 @@ def getFileReady(name):
 		rate = 16000,
 		input = True,
 		frames_per_buffer = 1024)
-	wf = wave.open('cues/'+name+'.wav', 'wb')
+	wf = wave.open('sounds/'+name+'.wav', 'wb')
 	wf.setnchannels(1)
 	wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
 	wf.setframerate(16000)
@@ -86,22 +86,22 @@ def	recordIt(whatToRecord, outfile, chunk=1024):
 		raise Exception
 
 if __name__ == '__main__':
-	questions = pd.read_csv('_cue_info.csv')
+	questions = pd.read_csv('_question_info.csv')
 
-	# indices = questions.index.tolist()
-	# random.shuffle(indices)
-	#
-	# for ix in indices:
-	# 	row = questions.ix[ix, ]
-	# 	doneRecording = False
-	# 	while not doneRecording:
-	# 		doneRecording = recordIt(row['question'], row['question_slug'])
-	#
+	indices = questions.index.tolist()
+	random.shuffle(indices)
 
-	categories = questions.cue.unique()
-	random.shuffle(categories)
-
-	for cat in categories:
+	for ix in indices:
+		row = questions.ix[ix, ]
 		doneRecording = False
 		while not doneRecording:
-			doneRecording = recordIt(cat, cat)
+			doneRecording = recordIt(row['question'], row['question_slug'])
+
+
+	# categories = questions.cue.unique()
+	# random.shuffle(categories)
+	#
+	# for cat in categories:
+	# 	doneRecording = False
+	# 	while not doneRecording:
+	# 		doneRecording = recordIt(cat, cat)

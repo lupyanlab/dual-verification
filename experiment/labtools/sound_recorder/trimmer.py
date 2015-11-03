@@ -1,8 +1,8 @@
 import pydub
 import unipath
 
-originals = unipath.Path('cues').listdir('*.wav')
-trimmed_dir = unipath.Path('trimmed_cues')
+originals = unipath.Path('sounds').listdir('*.wav')
+trimmed_dir = unipath.Path('trimmed')
 
 if not trimmed_dir.isdir():
     trimmed_dir.mkdir()
