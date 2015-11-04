@@ -57,6 +57,25 @@ def get_subj_info(gui_yaml, check_exists):
 
     return subj_info
 
+
+def load_sounds(stim_dir, match='*.wav'):
+    sound_files = unipath.Path(stim_dir).listdir(match)
+    sounds = {}
+    for sound_file in sound_files:
+        str_path = str(sound_file)  # psychopy chokes on unipath.Path
+        sounds[sound_file.stem] = sound.Sound(str_path)
+    return sounds
+
+
+def load_images(stim_dir, match='*.bmp', **kwargs):
+    image_files = unipath.Path(stim_dir).listdir(match)
+    images = {}
+    for image_file in image_files:
+        str_path = str(image_file)
+        images[image_file.stem] = visual.ImageStim(image=str_path, **kwargs)
+    return images
+
+
 def import_trials(fileName, method="sequential", seed=random.randint(1,100)):
 	(stimList,fieldNames)=data.importConditions(fileName,returnFieldNames=True)
 	trials = data.TrialHandler(stimList,1,method=method,seed=seed)
@@ -112,26 +131,6 @@ def popup_error(text):
 	errorDlg.addText('Error: '+text, color='Red')
 	errorDlg.show()
 
-def load_images(image_dir, ext, **kwargs):
-    if not isinstance(ext, list):
-        ext = [ext,]
-
-    image_names = [name for name in os.listdir(image_dir) if name[-3:] in ext]
-    images = {}
-    for img_name in image_names:
-        img_path = os.path.join(image_dir, img_name)
-        images[img_name] = visual.ImageStim(image=img_path, **kwargs)
-
-    return images
-
-def load_sounds(sound_dir, ext):
-    sound_names = [name for name in os.listdir(sound_dir) if name[-3:] == ext]
-    sounds = {}
-    for snd_name in sound_names:
-        snd_path = os.path.join(sound_dir, snd_name)
-        sounds[snd_name] = sound.Sound(snd_path)
-
-    return sounds
 
 def write_list_to_file(line, file, close=False):
     line = '\t'.join([str(value) for value in line]) + '\n'

@@ -8,6 +8,7 @@ import socket
 import webbrowser
 
 import pandas as pd
+from unipath import Path
 from psychopy import visual, core, event, sound
 
 from labtools.psychopy_helper import *
@@ -40,7 +41,7 @@ class Participant(UserDict):
     def data_file(self):
         if not self._data_file:
             data_file_name = '{subj_id}.csv'.format(**self)
-            self._data_file = unipath.Path(self.DATA_DIR, data_file_name)
+            self._data_file = Path(self.DATA_DIR, data_file_name)
         return self._data_file
 
     def write_header(self, col_names):
@@ -49,7 +50,8 @@ class Participant(UserDict):
 
     def write_trial(self, trial):
         assert self._col_names, 'write header first to save column order'
-        row_data = dict(self).update(trial)
+        row_data = dict(self)
+        row_data.update(trial)
         trial_data = [str(row_data[key]) for key in self._col_names]
         self._write_line(self.DATA_DELIMITER.join(trial_data))
 
@@ -78,7 +80,7 @@ class Trials(UserList):
         'rt',
         'is_correct',
     ]
-    STIM_DIR = unipath.Path('stimuli')
+    STIM_DIR = Path('stimuli')
 
     @classmethod
     def make(cls, **kwargs):
@@ -103,7 +105,7 @@ class Trials(UserList):
         trials = extend(trials, reps=4)
 
         # Read proposition info
-        propositions_csv = unipath.Path(cls.STIM_DIR, 'propositions.csv')
+        propositions_csv = Path(cls.STIM_DIR, 'propositions.csv')
         propositions = pd.read_csv(propositions_csv)
 
         # Add cue
@@ -169,59 +171,117 @@ class Trials(UserList):
         trials = trials[self.COLUMNS]
         trials.to_csv(trials_csv, index=False)
 
+
 class Experiment(object):
+    STIM_DIR = Path('stimuli')
+
     def __init__(self, exp_yaml):
         with open(exp_yaml, 'r') as f:
             exp_info = yaml.load(f)
 
+        self.waits = exp_info.pop('waits')
+        self.response_keys = exp_info.pop('response_keys')
+
         self.win = visual.Window(fullscr=True, units='pix')
 
         text_kwargs = dict(height=20, font='Consolas')
-        self.fix = visual.TextStim(self.win, text='+', **text_kwargs)
+        self.ready = visual.TextStim(self.win, text='+', **text_kwargs)
         self.prompt = visual.TextStim(self.win, text='?', **text_kwargs)
 
-        stim_dir = Path('stimuli')
-        self.questions = load_sounds(Path(stim_dir, 'questions'), '*.wav')
-        self.cues = load_sounds(Path(stim_dir, 'cues'), '*.wav')
+        self.questions = load_sounds(Path(self.STIM_DIR, 'questions'))
+        self.cues = load_sounds(Path(self.STIM_DIR, 'cues'))
 
-        mask_dir = unipath.Path(stim_dir, 'dynamic_mask')
-        self.mask = DynamicMask(mask_dir, 'colored', win=self.win,
-                                pos=[0,100], size=[200,200])
+        image_kwargs = dict(win=self.win, pos=[0,100], size=[200,200])
+        self.mask = DynamicMask(Path(self.STIM_DIR, 'dynamic_mask'),
+                                **image_kwargs)
+        self.pics = load_images(Path(self.STIM_DIR, 'pics'), **image_kwargs)
 
-        feedback_dir = unipath.Path(stim_dir, 'feedback')
-        self.feedback[0] = sound.Sound(unipath.Path(feedback_dir, 'buzz.wav'))
-        self.feedback[1] = sound.Sound(unipath.Path(feedback_dir, 'bleep.wav'))
+        feedback_dir = .Path(stim_dir, 'feedback')
+        self.feedback[0] = sound.Sound(Path(feedback_dir, 'buzz.wav'))
+        self.feedback[1] = sound.Sound(Path(feedback_dir, 'bleep.wav'))
+
+        self.timer = core.Clock()
+
 
     def run_trial(self, trial):
-        question = self.questions[trial['question_file']]
-        cue = self.cues[trial['cue_file']]
+        question = self.questions[trial['question']]
+        cue = self.cues[trial['cue']]
+
+        question_dur = question.getDuration()
+        cue_dur = question.getDuration()
 
         stim_during_audio = []
         if trial['mask_type'] == 'mask':
-            stim_during_audio.extend(self.mask)
+            stim_during_audio.append(self.mask)
 
-        response_type = trial['response_type']
-        if response_type == 'prompt':
-            pass
-        elif response_type == 'picture':
-            pass
+        if trial['response_type'] == 'prompt':
+            response_stim = self.prompt
         else:
-            raise NotImplementedError
+            response_stim = self.pics[trial['pic']]
 
         # Start trial presentation
         # ------------------------
-        self.fix.draw()
+        self.timer.reset()
+        self.ready.draw()
         self.win.flip()
-        core.wait(self.waits['fixation_duration'])
+        core.wait(self.waits['ready_duration'])
 
         # Play the question
+        self.timer.reset()
+        question.play()
+        while self.timer.getTime() < question_dur:
+            [stim.draw() for stim in stim_during_audio]
+            self.win.flip()
+            core.wait(self.waits['mask_refresh'])
+
+        # Delay between question offset and cue onset
+        self.timer.reset()
+        while self.timer.getTime() < self.waits['question_offset_to_cue_onset']:
+            [stim.draw() for stim in stim_during_audio]
+            self.win.flip()
+            core.wait(self.waits['mask_refresh'])
 
         # Play the cue
+        self.timer.reset()
+        cue.play()
+        while self.timer.getTime() < cue_dur:
+            [stim.draw() for stim in stim_during_audio]
+            self.win.flip()
+            core.wait(self.waits['mask_refresh'])
+
+        # Cue offset to response onset
+        self.win.flip()
+        core.wait(self.waits['cue_offset_to_response_onset'])
 
         # Show the response prompt
-
+        self.timer.reset()
+        response_stim.draw()
+        self.win.flip()
+        response = event.waitKeys(maxWait=self.waits['max_wait'],
+                                  keyList=self.response_keys.keys(),
+                                  timeStamped=self.timer)
+        self.win.flip()
         # ----------------------
         # End trial presentation
+
+        try:
+            key, rt = response[0]
+        except TypeError:
+            rt = self.waits['max_wait']
+            response = 'timeout'
+        else:
+            response = self.response_keys[key]
+
+        is_correct = int(response == trial['correct_response'])
+
+        trial['response'] = response
+        trial['rt'] = rt * 1000
+        trial['is_correct'] = is_correct
+
+        self.feedback[is_correct].play()
+        self.core.wait(self.waits['iti'])
+
+        return trial
 
     def show_instructions(self):
         instructions = self.version['instructions']
@@ -255,33 +315,33 @@ class Experiment(object):
             if page == 4 or page == 5:
                 self.feedback[1].play()
 
-def run_experiment():
 
+def main():
     # Given a participant, determine if the data file exists
     check_exists = lambda subj_info: Participant(**subj_info).data_file.exists()
+    participant_data = get_subj_info('gui_info.yaml', check_exists)
+    participant = Participant(**participant_data)
 
-    participant = Participant(**get_subj_info('gui_info.yaml', check_exists))
     trials = Trials.make(**participant)
+    output_columns = ['subj_id', 'seed'] + Trials.COLUMNS
+    participant.write_header(output_columns)
+
     experiment = Experiment('exp_info.yaml')
+    # experiment.show_instructions()
 
-    with open(participant.data_file, 'w') as data_file:
-        data_file.write(trials.columns)
-        data_file.flush()
+    block = 0
+    for trial in trials:
+        # Before starting new block, show the break screen
+        if trial['block'] > block:
+            if block == 0:
+                # Just finished the practice trials
+                experiment.show_end_of_practice_screen()
+            else:
+                experiment.show_break_screen()
+            block = trial['block']
 
-        block = 0
-        for trial in trials:
-            # Before starting new block, show the break screen
-            if trial.block > block:
-                if block == 0:
-                    # Just finished the practice trials
-                    experiment.show_end_of_practice_screen()
-                else:
-                    experiment.show_break_screen()
-                block = trial.block
-            trial_data = experiment.run_trial(trial)
-            trial_str = ','.join(map(str, trial_data.values())) + '\n'
-            data_file.write(trial_str)
-            data_file.flush()
+        trial_data = experiment.run_trial(trial)
+        participant.write_trial(trial_data)
 
 
 if __name__ == '__main__':
@@ -299,4 +359,4 @@ if __name__ == '__main__':
         experiment = Experiment('exp_info.yaml')
         experiment.show_instructions()
     else:
-        run_experiment()
+        main()
