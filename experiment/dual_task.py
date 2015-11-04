@@ -13,7 +13,6 @@ from psychopy import visual, core, event, sound
 from labtools.psychopy_helper import *
 from labtools.dynamic_mask import DynamicMask
 from labtools.trials_functions import *
-# from labtools.experiment import get_subj_info, load_sounds
 
 class Participant(UserDict):
     """ Store participant data and provide helper functions.
@@ -85,7 +84,7 @@ class Trials(UserList):
     def make(cls, **kwargs):
         """ Create a list of trials.
 
-        A trial is a dict with values for all keys in self.COLUMNS.
+        Each trial is a dict with values for all keys in self.COLUMNS.
         """
         seed = kwargs.get('seed')
         prng = pd.np.random.RandomState(seed)
@@ -107,22 +106,30 @@ class Trials(UserList):
         propositions_csv = unipath.Path(cls.STIM_DIR, 'propositions.csv')
         propositions = pd.read_csv(propositions_csv)
 
-        # Select categories to test
-        categories = propositions.cue.unique()
-
         # Add cue
+        categories = propositions.cue.unique()
         trials['cue'] = prng.choice(categories, len(trials), replace=True)
 
-        # Select proposition id
+        _propositions = propositions.copy()
+
         def determine_question(row):
-            is_cue = (propositions.cue == row['cue'])
-            is_feat_type = (propositions.feat_type == row['feat_type'])
-            is_correct_response = (propositions.correct_response ==
+            is_cue = (_propositions.cue == row['cue'])
+            is_feat_type = (_propositions.feat_type == row['feat_type'])
+            is_correct_response = (_propositions.correct_response ==
                                    row['correct_response'])
 
             valid_propositions = (is_cue & is_feat_type & is_correct_response)
-            options = propositions.ix[valid_propositions, ]
-            return prng.choice(options.proposition_id)
+
+            if valid_propositions.sum() == 0:
+                trials.ix[row.name, 'cue'] = prng.choice(categories)
+                return determine_question(trials.ix[row.name, ])
+
+            options = _propositions.ix[valid_propositions, ]
+            selected_ix = prng.choice(options.index)
+            selected_proposition_id = options.ix[selected_ix, 'proposition_id']
+            _propositions.drop(selected_ix, inplace=True)
+
+            return selected_proposition_id
 
         trials['proposition_id'] = trials.apply(determine_question, axis=1)
 
@@ -131,15 +138,14 @@ class Trials(UserList):
 
         # Add in picture
         def determine_pic(row):
-            if row['response_type'] == 'pic':
-                if row['correct_response'] == 'yes':
-                    return row['cue']
-                else:
-                    distractors = list(categories)
-                    distractors.remove(row['cue'])
-                    return prng.choice(distractors)
-            else:
+            if row['response_type'] != 'pic':
                 return ''
+            elif row['correct_response'] == 'yes':
+                return row['cue']
+            else:
+                distractors = list(categories)
+                distractors.remove(row['cue'])
+                return prng.choice(distractors)
 
         trials['pic'] = trials.apply(determine_pic, axis=1)
 
