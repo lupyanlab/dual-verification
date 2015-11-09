@@ -8,15 +8,12 @@ import socket
 import webbrowser
 
 import pandas as pd
-<<<<<<< HEAD
 
 # must be done *before* loading psychopy.sound
 from labtools import pyo_sound
 pyo_sound.init_pyo()
 
-=======
 from unipath import Path
->>>>>>> refs/remotes/origin/master
 from psychopy import visual, core, event, sound
 
 from labtools.psychopy_helper import *
@@ -49,8 +46,8 @@ class Participant(UserDict):
         """
         self._data_file = None
         self._order = kwargs.pop('_order', kwargs.keys())
-        assert len(self._order) == len(kwargs) &
-               all([kwg in self._order for kwg in kwargs]),
+        assert len(self._order) == len(kwargs) & \
+               all([kwg in self._order for kwg in kwargs]), \
                "_order doesn't match kwargs.keys()"
         return super(Participant, self).__init__(**kwargs)
 
@@ -71,15 +68,9 @@ class Participant(UserDict):
 
     def write_trial(self, trial):
         assert self._col_names, 'write header first to save column order'
-<<<<<<< HEAD
         trial_data = dict(self)
         trial_data.update(trial)
         row_data = [str(trial_data[key]) for key in self._col_names]
-=======
-        row_data = dict(self)
-        row_data.update(trial)
-        trial_data = [str(row_data[key]) for key in self._col_names]
->>>>>>> refs/remotes/origin/master
         self._write_line(self.DATA_DELIMITER.join(trial_data))
 
     def _write_line(self, row):
@@ -88,6 +79,7 @@ class Participant(UserDict):
 
 
 class Trials(UserList):
+    STIM_DIR = Path('stimuli')
     COLUMNS = [
         # Trial columns
         'block',
@@ -107,7 +99,11 @@ class Trials(UserList):
         'rt',
         'is_correct',
     ]
-    STIM_DIR = Path('stimuli')
+    DEFAULTS = dict(
+        ratio_yes_correct_responses = 0.75,
+        ratio_prompt_response_type = 0.75,
+    )
+
 
     @classmethod
     def make(cls, **kwargs):
@@ -115,18 +111,20 @@ class Trials(UserList):
 
         Each trial is a dict with values for all keys in self.COLUMNS.
         """
-        seed = kwargs.get('seed')
+        settings = dict(cls.DEFAULTS)
+        settings.update(kwargs)
+
+        seed = settings.get('seed')
         prng = pd.np.random.RandomState(seed)
 
         # Balance within subject variables
         trials = counterbalance({'feat_type': ['visual', 'nonvisual'],
                                  'mask_type': ['mask', 'nomask']})
         trials = expand(trials, name='correct_response', values=['yes', 'no'],
-                        ratio=kwargs.get('ratio_yes_correct_responses', 0.75),
+                        ratio=settings['ratio_yes_correct_responses'],
                         seed=seed)
         trials = expand(trials, name='response_type', values=['prompt', 'pic'],
-                        ratio=kwargs.get('ratio_prompt_response_type', 0.75),
-                        seed=seed)
+                        ratio=settings['ratio_prompt_response_type'], seed=seed)
 
         # Extend the trials to final length
         trials = extend(trials, reps=4)
@@ -235,7 +233,7 @@ class Experiment(object):
                                 **image_kwargs)
         self.pics = load_images(Path(self.STIM_DIR, 'pics'), **image_kwargs)
 
-        feedback_dir = .Path(stim_dir, 'feedback')
+        feedback_dir = Path(stim_dir, 'feedback')
         self.feedback[0] = sound.Sound(Path(feedback_dir, 'buzz.wav'))
         self.feedback[1] = sound.Sound(Path(feedback_dir, 'bleep.wav'))
 
@@ -412,17 +410,15 @@ def main():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-
-    parser.add_argument('--trials', '-t', action='store_true', default=False)
-    parser.add_argument('--instructions', '-i', action='store_true',
-                        default=False)
+    parser.add_argument('command', choices=['run', 'trials', 'instructons'],
+                        default='run')
 
     args = parser.parse_args()
 
-    if args.trials:
+    if args.command == 'trials':
         trials = Trials.make()
         trials.write_trials('sample_trials.csv')
-    elif args.instructions:
+    elif args.command == 'instructions':
         experiment = Experiment('settings.yaml')
         experiment.show_instructions()
     else:
