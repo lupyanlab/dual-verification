@@ -1,24 +1,25 @@
 #!/usr/bin/env python
 import argparse
-import os
+
 import yaml
 from UserDict import UserDict
 from UserList import UserList
-import socket
-import webbrowser
 
 import pandas as pd
+from unipath import Path
+from psychopy import visual, core, event
 
 # must be done *before* loading psychopy.sound
 from labtools import pyo_sound
+from psychopy import sound
+
+from labtools.psychopy_helper import get_subj_info, load_sounds, load_images
+from labtools.dynamic_mask import DynamicMask
+from labtools.trials_functions import (counterbalance, expand, extend,
+                                       add_block, smart_shuffle)
+
 pyo_sound.init_pyo()
 
-from unipath import Path
-from psychopy import visual, core, event, sound
-
-from labtools.psychopy_helper import *
-from labtools.dynamic_mask import DynamicMask
-from labtools.trials_functions import *
 
 class Participant(UserDict):
     """ Store participant data and provide helper functions.
@@ -46,9 +47,11 @@ class Participant(UserDict):
         """
         self._data_file = None
         self._order = kwargs.pop('_order', kwargs.keys())
-        assert len(self._order) == len(kwargs) & \
-               all([kwg in self._order for kwg in kwargs]), \
-               "_order doesn't match kwargs.keys()"
+
+        correct_len = len(self._order) == len(kwargs)
+        kwargs_in_order = all([kwg in self._order for kwg in kwargs])
+        assert correct_len & kwargs_in_order, "_order doesn't match kwargs"
+
         return super(Participant, self).__init__(**kwargs)
 
     def keys(self):
@@ -71,7 +74,7 @@ class Participant(UserDict):
         trial_data = dict(self)
         trial_data.update(trial)
         row_data = [str(trial_data[key]) for key in self._col_names]
-        self._write_line(self.DATA_DELIMITER.join(trial_data))
+        self._write_line(self.DATA_DELIMITER.join(row_data))
 
     def _write_line(self, row):
         with open(self.data_file, 'r') as f:
@@ -100,10 +103,9 @@ class Trials(UserList):
         'is_correct',
     ]
     DEFAULTS = dict(
-        ratio_yes_correct_responses = 0.75,
-        ratio_prompt_response_type = 0.75,
+        ratio_yes_correct_responses=0.75,
+        ratio_prompt_response_type=0.75,
     )
-
 
     @classmethod
     def make(cls, **kwargs):
@@ -124,7 +126,8 @@ class Trials(UserList):
                         ratio=settings['ratio_yes_correct_responses'],
                         seed=seed)
         trials = expand(trials, name='response_type', values=['prompt', 'pic'],
-                        ratio=settings['ratio_prompt_response_type'], seed=seed)
+                        ratio=settings['ratio_prompt_response_type'],
+                        seed=seed)
 
         # Extend the trials to final length
         trials = extend(trials, reps=4)
@@ -196,28 +199,31 @@ class Trials(UserList):
         trials = trials[self.COLUMNS]
         trials.to_csv(trials_csv, index=False)
 
-	def iter_blocks(self, key='block'):
-		""" Return trials in blocks. """
-		block = self[0][key]
-		trials_in_block = []
-		for trial in self:
-			if trial[key] == block:
-				trials_in_block.append(trial)
-			else:
-				yield trials_in_block
-				block = trial[key]
-				trials_in_block = []
+    def iter_blocks(self, key='block'):
+        """ Return trials in blocks. """
+        block = self[0][key]
+        trials_in_block = []
+        for trial in self:
+            if trial[key] == block:
+                trials_in_block.append(trial)
+            else:
+                yield trials_in_block
+                block = trial[key]
+                trials_in_block = []
 
 
 class Experiment(object):
     STIM_DIR = Path('stimuli')
 
-    def __init__(self, settings_yaml):
+    def __init__(self, settings_yaml, instructions_yaml):
         with open(settings_yaml, 'r') as f:
             exp_info = yaml.load(f)
 
         self.waits = exp_info.pop('waits')
         self.response_keys = exp_info.pop('response_keys')
+
+        with open(instructions_yaml, 'r') as f:
+            self.instructions = yaml.load(f)
 
         self.win = visual.Window(fullscr=True, units='pix')
 
@@ -228,17 +234,16 @@ class Experiment(object):
         self.questions = load_sounds(Path(self.STIM_DIR, 'questions'))
         self.cues = load_sounds(Path(self.STIM_DIR, 'cues'))
 
-        image_kwargs = dict(win=self.win, pos=[0,100], size=[200,200])
+        image_kwargs = dict(win=self.win, pos=[0, 100], size=[200, 200])
         self.mask = DynamicMask(Path(self.STIM_DIR, 'dynamic_mask'),
                                 **image_kwargs)
         self.pics = load_images(Path(self.STIM_DIR, 'pics'), **image_kwargs)
 
-        feedback_dir = Path(stim_dir, 'feedback')
+        feedback_dir = Path(self.STIM_DIR, 'feedback')
         self.feedback[0] = sound.Sound(Path(feedback_dir, 'buzz.wav'))
         self.feedback[1] = sound.Sound(Path(feedback_dir, 'bleep.wav'))
 
         self.timer = core.Clock()
-
 
     def run_trial(self, trial=None):
         """ Run a trial using a dict of settings.
@@ -335,36 +340,7 @@ class Experiment(object):
         return trial
 
     def show_instructions(self):
-        instructions = self.version['instructions']
-
-        for page in instructions['pages']:
-            self.stim['instr'].setText(instructions['text'][page])
-            self.stim['instr'].draw()
-
-            if page == 4:
-                self.stim['question'].setText('Does it have a seat? --> pineapple')
-                self.stim['question'].draw()
-                advance_keys = ['n',]
-
-            elif page == 5:
-                self.stim['question'].setText('Is it green? --> apple')
-                self.stim['question'].draw()
-                advance_keys = ['y',]
-
-            elif page == 6:
-                self.mask.setPos([0,-100])
-                self.mask.draw()
-                advance_keys = ['space',]
-                self.mask.setPos([0,100])
-
-            else:
-                advance_keys = ['space',]
-
-            self.win.flip()
-            event.waitKeys(keyList = advance_keys)
-
-            if page == 4 or page == 5:
-                self.feedback[1].play()
+        pass
 
     def show_end_of_practice_screen(self):
         pass
@@ -375,13 +351,15 @@ class Experiment(object):
     def show_end_of_experiment_screen(self):
         pass
 
+
 def main():
     participant_data = get_subj_info(
         'gui_info.yaml',
         # A simple function to determine if the data file exists, provided
         # subj_info data. Used to check for uniqueness in subj_ids when
         # getting info from gui.
-        check_exists = lambda subj_info: Participant(**subj_info).data_file.exists()
+        check_exists=lambda subj_info:
+            Participant(**subj_info).data_file.exists()
     )
 
     participant = Participant(**participant_data)
@@ -419,7 +397,7 @@ if __name__ == '__main__':
         trials = Trials.make()
         trials.write_trials('sample_trials.csv')
     elif args.command == 'instructions':
-        experiment = Experiment('settings.yaml')
+        experiment = Experiment('settings.yaml', 'instructions.yaml')
         experiment.show_instructions()
     else:
         main()
