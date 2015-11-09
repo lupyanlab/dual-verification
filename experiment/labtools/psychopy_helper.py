@@ -6,14 +6,23 @@ import unipath
 
 from psychopy import core, event, visual, data, gui, misc, sound
 
-def get_subj_info(gui_yaml, check_exists):
-    """ Create a psychopy.gui from a config file.
+def get_subj_info(gui_yaml, check_exists, save_order=True):
+    """ Create a psychopy.gui from a yaml config file.
+
+    The first time the experiment is run, a pickle of that subject's settings
+    is saved. On subsequent runs, the experiment tries to prepopulate the
+    settings with those of the previous subject.
 
     Parameters
     ----------
     gui_yaml: str, Path to config file in yaml format.
     check_exists: function, Computes a data file path from the gui data, and
         checks for its existence. If the file exists, an error is displayed.
+    save_order: bool, Should the key order be saved in "_order"? Default is True.
+
+    Returns
+    -------
+    dict, with key order saved in "_order", if specified.
     """
     with open(gui_yaml, 'r') as f:
         gui_info = yaml.load(f)
@@ -55,6 +64,8 @@ def get_subj_info(gui_yaml, check_exists):
             misc.toFile(last_subj_info, subj_info)
             break
 
+    if save_order:
+        subj_info['_order'] = ordered_names + fixed_fields
     return subj_info
 
 def import_trials(fileName, method="sequential", seed=random.randint(1,100)):

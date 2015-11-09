@@ -8,6 +8,11 @@ import socket
 import webbrowser
 
 import pandas as pd
+
+# must be done *before* loading psychopy.sound
+from labtools import pyo_sound
+pyo_sound.init_pyo()
+
 from psychopy import visual, core, event, sound
 
 from labtools.psychopy_helper import *
@@ -34,8 +39,20 @@ class Participant(UserDict):
     DATA_DELIMITER = ','
 
     def __init__(self, **kwargs):
+        """ Standard dict constructor.
+
+        Saves _order if provided. Raises an AssertionError if _order
+        isn't exhaustive of kwargs.
+        """
         self._data_file = None
+        self._order = kwargs.pop('_order', kwargs.keys())
+        assert len(self._order) == len(kwargs) &
+               all([kwg in self._order for kwg in kwargs]),
+               "_order doesn't match kwargs.keys()"
         return super(Participant, self).__init__(**kwargs)
+
+    def keys(self):
+        return self._order
 
     @property
     def data_file(self):
@@ -44,14 +61,16 @@ class Participant(UserDict):
             self._data_file = unipath.Path(self.DATA_DIR, data_file_name)
         return self._data_file
 
-    def write_header(self, col_names):
-        self._col_names = col_names
-        self._write_line(self.DATA_DELIMITER.join(col_names))
+    def write_header(self, trial_col_names):
+        """ Writes the names of the columns and saves the order. """
+        self._col_names = self._order + trial_col_names
+        self._write_line(self.DATA_DELIMITER.join(self._col_names))
 
     def write_trial(self, trial):
         assert self._col_names, 'write header first to save column order'
-        row_data = dict(self).update(trial)
-        trial_data = [str(row_data[key]) for key in self._col_names]
+        trial_data = dict(self)
+        trial_data.update(trial)
+        row_data = [str(trial_data[key]) for key in self._col_names]
         self._write_line(self.DATA_DELIMITER.join(trial_data))
 
     def _write_line(self, row):
@@ -67,7 +86,7 @@ class Trials(UserList):
 
         # Stimuli columns
         'proposition_id',
-        'question',
+        'question_slug',
         'cue',
         'mask_type',
         'response_type',
@@ -163,9 +182,22 @@ class Trials(UserList):
         trials = trials[self.COLUMNS]
         trials.to_csv(trials_csv, index=False)
 
+	def iter_blocks(self, key='block'):
+		""" Return trials in blocks. """
+		block = self[0][key]
+		trials_in_block = []
+		for trial in self:
+			if trial[key] == block:
+				trials_in_block.append(trial)
+			else:
+				yield trials_in_block
+				block = trial[key]
+				trials_in_block = []
+
+
 class Experiment(object):
-    def __init__(self, exp_yaml):
-        with open(exp_yaml, 'r') as f:
+    def __init__(self, settings_yaml):
+        with open(settings_yaml, 'r') as f:
             exp_info = yaml.load(f)
 
         self.win = visual.Window(fullscr=True, units='pix')
@@ -186,8 +218,23 @@ class Experiment(object):
         self.feedback[0] = sound.Sound(unipath.Path(feedback_dir, 'buzz.wav'))
         self.feedback[1] = sound.Sound(unipath.Path(feedback_dir, 'bleep.wav'))
 
-    def run_trial(self, trial):
-        question = self.questions[trial['question_file']]
+    def run_trial(self, trial=None):
+        """ Run a trial using a dict of settings.
+
+        If trial settings are not provided, defaults will be used.
+        """
+        if trial is None:
+            trial = dict(
+                question='is-it-used-in-circuses',
+                cue='elephant',
+                mask_type='mask',
+                response_type='prompt',
+                pic='',
+                correct_response='yes'
+            )
+
+
+        question = self.questions[trial['question_slug']]
         cue = self.cues[trial['cue_file']]
 
         stim_during_audio = []
@@ -249,37 +296,51 @@ class Experiment(object):
             if page == 4 or page == 5:
                 self.feedback[1].play()
 
-def run_experiment():
+    def show_end_of_practice_screen(self):
+        pass
 
-    # Given a participant, determine if the data file exists
-    check_exists = lambda subj_info: Participant(**subj_info).data_file.exists()
+    def show_break_screen(self):
+        pass
 
-    participant = Participant(**get_subj_info('gui_info.yaml', check_exists))
+    def show_end_of_experiment_screen(self):
+        pass
+
+def main():
+    participant_data = get_subj_info(
+        'gui_info.yaml',
+        # A simple function to determine if the data file exists, provided
+        # subj_info data. Used to check for uniqueness in subj_ids when
+        # getting info from gui.
+        check_exists = lambda subj_info: Participant(**subj_info).data_file.exists()
+    )
+
+    participant = Participant(**participant_data)
     trials = Trials.make(**participant)
-    experiment = Experiment('exp_info.yaml')
 
-    with open(participant.data_file, 'w') as data_file:
-        data_file.write(trials.columns)
-        data_file.flush()
+    # Start of experiment
+    experiment = Experiment('settings.yaml')
+    experiment.show_instructions()
 
-        block = 0
-        for trial in trials:
-            # Before starting new block, show the break screen
-            if trial.block > block:
-                if block == 0:
-                    # Just finished the practice trials
-                    experiment.show_end_of_practice_screen()
-                else:
-                    experiment.show_break_screen()
-                block = trial.block
+    participant.write_header(trials.COLUMNS)
+
+    for block in trials.iter_blocks():
+        block_type = block[0]['block_type']
+
+        for trial in block:
             trial_data = experiment.run_trial(trial)
-            trial_str = ','.join(map(str, trial_data.values())) + '\n'
-            data_file.write(trial_str)
-            data_file.flush()
+            participant.write_trial(trial_data)
+
+        if block_type == 'practice':
+            experiment.show_end_of_practice_screen()
+        else:
+            experiment.show_break_screen()
+
+    experiment.show_end_of_experiment_screen()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+
     parser.add_argument('--trials', '-t', action='store_true', default=False)
     parser.add_argument('--instructions', '-i', action='store_true',
                         default=False)
@@ -290,7 +351,7 @@ if __name__ == '__main__':
         trials = Trials.make()
         trials.write_trials('sample_trials.csv')
     elif args.instructions:
-        experiment = Experiment('exp_info.yaml')
+        experiment = Experiment('settings.yaml')
         experiment.show_instructions()
     else:
-        run_experiment()
+        main()
