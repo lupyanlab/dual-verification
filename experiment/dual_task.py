@@ -366,7 +366,7 @@ def main():
     trials = Trials.make(**participant)
 
     # Start of experiment
-    experiment = Experiment('settings.yaml')
+    experiment = Experiment('settings.yaml', 'instructions.yaml')
     experiment.show_instructions()
 
     participant.write_header(trials.COLUMNS)
