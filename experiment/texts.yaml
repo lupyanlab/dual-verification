@@ -1,0 +1,35 @@
+introduction:
+  1: >
+    Welcome to the MWP experiment! Press the SPACEBAR to begin.
+  2: >
+    In today's experiment you will answer some simple yes or no questions about
+    familiar objects like dogs, chairs, and elephants. Think about it like a game
+    you might play with a child who is learning these objects for the first time.
+    First you'll hear the question (for example, 'Does it have feathers?'), then
+    you'll hear the name of an object, like 'eagle' or 'table'. For most of the
+    questions, you will answer the question 'yes' or 'no' with regard to the
+    named object. Press the SPACEBAR to hear one of these questions.
+  3: >
+    Some of the questions may sound a bit weird. If the question doesn't make sense,
+    the answer is most likely 'no'. Press the SPACEBAR to hear one of these questions.
+  4: >
+    Other questions will be true for some items in a category, but not all items.
+    In these cases, the answer is 'yes'. Press the SPACEBAR to hear one of these
+    questions.
+  5: >
+    On some of the trials, instead of seeing the prompt that says "Yes or No?"
+    you will see a picture of an object. On these trials, instead of answering
+    the question, you will instead answer whether or not the picture is the same
+    as the named object. Press the SPACEBAR to see one of these trials.
+  6: >
+    If you see a picture that was *not* named, press the key for 'no'. Press the
+    SPACEBAR to see one of these trials.
+end_of_practice: >
+  You've reached the end of the practice trials.
+break_screen: >
+  Take a quick break, but please stay in the room.
+end_of_experiment: >
+  You've finished the experiment. Before you leave, we will ask you to fill out
+  a short survey. This survey will appear in a web browser after you press the
+  SPACEBAR. If you do not see the survey or have any problems submitting your
+  responses, please let the experimenter know. And thanks for participating!

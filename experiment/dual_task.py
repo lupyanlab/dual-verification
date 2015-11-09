@@ -215,15 +215,15 @@ class Trials(UserList):
 class Experiment(object):
     STIM_DIR = Path('stimuli')
 
-    def __init__(self, settings_yaml, instructions_yaml):
+    def __init__(self, settings_yaml, texts_yaml):
         with open(settings_yaml, 'r') as f:
             exp_info = yaml.load(f)
 
         self.waits = exp_info.pop('waits')
         self.response_keys = exp_info.pop('response_keys')
 
-        with open(instructions_yaml, 'r') as f:
-            self.instructions = yaml.load(f)
+        with open(texts_yaml, 'r') as f:
+            self.texts = yaml.load(f)
 
         self.win = visual.Window(fullscr=True, units='pix')
 
@@ -340,10 +340,13 @@ class Experiment(object):
         return trial
 
     def show_instructions(self):
-        pass
+        introduction = sorted(self.texts['introduction'])
+
+        for i, text in introduction.items():
+            print i, text
 
     def show_end_of_practice_screen(self):
-        pass
+        end_of_practice = self.texts['end_of_practice']
 
     def show_break_screen(self):
         pass
@@ -366,7 +369,7 @@ def main():
     trials = Trials.make(**participant)
 
     # Start of experiment
-    experiment = Experiment('settings.yaml', 'instructions.yaml')
+    experiment = Experiment('settings.yaml', 'texts.yaml')
     experiment.show_instructions()
 
     participant.write_header(trials.COLUMNS)
@@ -388,16 +391,17 @@ def main():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('command', choices=['run', 'trials', 'instructons'],
+    parser.add_argument('command', choices=['run', 'trials', 'instructions'],
                         default='run')
+    parser.add_argument('--output', '-o', help='Name of output file')
 
     args = parser.parse_args()
 
     if args.command == 'trials':
         trials = Trials.make()
-        trials.write_trials('sample_trials.csv')
+        trials.write_trials(args.output or 'sample_trials.csv')
     elif args.command == 'instructions':
-        experiment = Experiment('settings.yaml', 'instructions.yaml')
+        experiment = Experiment('settings.yaml', 'texts.yaml')
         experiment.show_instructions()
     else:
         main()

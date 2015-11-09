@@ -5,7 +5,7 @@ instructions:
     text:
         1: "Welcome to the experiment! Press the SPACEBAR to begin."
         2: "Your job today is to answer some simple, yes or no questions about familiar objects like dogs, chairs, and elephants. Press the SPACEBAR to continue."
-        3: "Think of it like a game you might play with a child who is learning about these objects for the first time. First you'll see the question (for example, 'Does it have feathers?'), then you'll hear a word through the headphones, like 'eagle' or 'table'. After the word, you'll see a question mark appear on the screen. Once it appears, you'll answer  yes or no using the keyboard. You will press the 'y' key for yes and the 'n' key for no. Press the SPACEBAR to continue."
+        3: "Think of it like a game you might play with a child who is learning about these objects for the first time.  You will press the 'y' key for yes and the 'n' key for no. Press the SPACEBAR to continue."
         4: "Some of the questions may sound a bit weird. If the question doesn't make sense, the answer is most likely 'no'. Answer the question below.\n\n(Remember: Press 'y' for YES and 'n' for NO)"
         5: "Other questions will be true for some items in a category, but not all items. In these cases, the answer is 'yes'. Answer the question below."
         6: "Why are we asking you to answer these simple questions? The speed at which people perform this task tells us something about how easy or hard it is for the brain to 'find' the relevant information in your memory. Now this sort of analysis only turns up meaningful results if everyone is doing their best to answer as quickly and accurately as possible, so please: try your best for this 20-25 minute task. Press the SPACEBAR to continue."
