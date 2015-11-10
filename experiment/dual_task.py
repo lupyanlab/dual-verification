@@ -7,18 +7,15 @@ from UserList import UserList
 
 import pandas as pd
 from unipath import Path
-from psychopy import visual, core, event
 
-# must be done *before* loading psychopy.sound
-from labtools import pyo_sound
-from psychopy import sound
+from psychopy import prefs
+prefs.general.audioLib = ['pyo', ]
+from psychopy import visual, core, event, sound
 
 from labtools.psychopy_helper import get_subj_info, load_sounds, load_images
 from labtools.dynamic_mask import DynamicMask
 from labtools.trials_functions import (counterbalance, expand, extend,
                                        add_block, smart_shuffle)
-
-pyo_sound.init_pyo()
 
 
 class Participant(UserDict):
@@ -200,7 +197,7 @@ class Trials(UserList):
         trials.to_csv(trials_csv, index=False)
 
     def iter_blocks(self, key='block'):
-        """ Return trials in blocks. """
+        """ Yield blocks of trials. """
         block = self[0][key]
         trials_in_block = []
         for trial in self:
@@ -231,15 +228,16 @@ class Experiment(object):
         self.ready = visual.TextStim(self.win, text='+', **text_kwargs)
         self.prompt = visual.TextStim(self.win, text='?', **text_kwargs)
 
-        self.questions = load_sounds(Path(self.STIM_DIR, 'questions'))
-        self.cues = load_sounds(Path(self.STIM_DIR, 'cues'))
+        # self.questions = load_sounds(Path(self.STIM_DIR, 'questions'))
+        # self.cues = load_sounds(Path(self.STIM_DIR, 'cues'))
 
         image_kwargs = dict(win=self.win, pos=[0, 100], size=[200, 200])
-        self.mask = DynamicMask(Path(self.STIM_DIR, 'dynamic_mask'),
-                                **image_kwargs)
+        # self.mask = DynamicMask(Path(self.STIM_DIR, 'dynamic_mask'),
+        #                         **image_kwargs)
         self.pics = load_images(Path(self.STIM_DIR, 'pics'), **image_kwargs)
 
         feedback_dir = Path(self.STIM_DIR, 'feedback')
+        self.feedback = {}
         self.feedback[0] = sound.Sound(Path(feedback_dir, 'buzz.wav'))
         self.feedback[1] = sound.Sound(Path(feedback_dir, 'bleep.wav'))
 
@@ -248,7 +246,7 @@ class Experiment(object):
     def run_trial(self, trial=None):
         """ Run a trial using a dict of settings.
 
-        If trial settings are not provided, defaults will be used.
+        If trial settings are not provided, defaults will be used for testing.
         """
         if trial is None:
             trial = dict(
@@ -340,19 +338,60 @@ class Experiment(object):
         return trial
 
     def show_instructions(self):
-        introduction = sorted(self.texts['introduction'])
+        introduction = sorted(self.texts['introduction'].items())
 
-        for i, text in introduction.items():
-            print i, text
+        text_kwargs = dict(height=30, wrapWidth=600, color='black',
+                           font='Consolas')
+        main = visual.TextStim(self.win, **text_kwargs)
+
+        for i, block in introduction:
+            main.setText(block['text'])
+            main.draw()
+            advance_keys = ['space', ]
+            self.win.flip()
+            event.waitKeys(keyList=advance_keys)
+
+            tag = block['tag']
+            if tag == 'prompt':
+                # play or print an easy question
+                pass
+            elif tag == 'weird':
+                # play or print a weird question
+                pass
+            elif tag == 'close':
+                # play or print a close but not all question
+                pass
+            elif tag == 'pic':
+                # show a picture
+                pass
+            elif tag == 'nopic':
+                # show an incorrect picture
+                pass
+            elif tag == 'mask':
+                # show the masks
+                pass
 
     def show_end_of_practice_screen(self):
-        end_of_practice = self.texts['end_of_practice']
+        visual.TextStim(self.win, text=self.texts['end_of_practice'],
+                        height=30, wrapWidth=600, color='black',
+                        font='Consolas').draw()
+        self.win.flip()
+        event.waitKeys(keyList=['space', ])
+
 
     def show_break_screen(self):
-        pass
+        visual.TextStim(self.win, text=self.texts['break_screen'],
+                        height=30, wrapWidth=600, color='black',
+                        font='Consolas').draw()
+        self.win.flip()
+        event.waitKeys(keyList=['space', ])
 
     def show_end_of_experiment_screen(self):
-        pass
+        visual.TextStim(self.win, text=self.texts['end_of_experiment'],
+                        height=30, wrapWidth=600, color='black',
+                        font='Consolas').draw()
+        self.win.flip()
+        event.waitKeys(keyList=['space', ])
 
 
 def main():
