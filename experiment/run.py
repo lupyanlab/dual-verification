@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import argparse
-
+import copy
 import yaml
 from UserDict import UserDict
 from UserList import UserList
@@ -338,9 +338,9 @@ class Experiment(object):
     def show_instructions(self):
         introduction = sorted(self.texts['introduction'].items())
 
-        text_kwargs = dict(wrapWidth=800, color='black', font='Consolas')
-        main = visual.TextStim(self.win, pos=[0, 350], **text_kwargs)
-        example = visual.TextStim(self.win, pos=[0, -100], **text_kwargs)
+        text_kwargs = dict(wrapWidth=1000, color='black', font='Consolas')
+        main = visual.TextStim(self.win, pos=[0, 250], **text_kwargs)
+        example = visual.TextStim(self.win, pos=[0, -50], **text_kwargs)
         example.setHeight(30)
 
         for i, block in introduction:
@@ -363,9 +363,13 @@ class Experiment(object):
                 example.draw()
 
             if tag == 'pic_apple':
-                self.pics['apple'].draw()
+                img_path = str(Path('stimuli', 'pics', 'apple.bmp'))
+                apple = visual.ImageStim(self.win, img_path, pos=[0, -100])
+                apple.draw()
             elif tag == 'mask':
-                self.mask.draw()
+                img_path = str(Path('stimuli', 'dynamic_mask', 'colored_1.png'))
+                mask = visual.ImageStim(self.win, img_path, pos=[0, -100])
+                mask.draw()
 
             self.win.flip()
             key = event.waitKeys(keyList=advance_keys)[0]
