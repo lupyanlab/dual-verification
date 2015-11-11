@@ -347,11 +347,15 @@ class Experiment(object):
         for i, block in introduction:
             main.setText(block['text'])
             main.draw()
-            advance_keys = ['space', ]
+            advance_keys = ['space', 'q']
             self.win.flip()
-            event.waitKeys(keyList=advance_keys)
+            key = event.waitKeys(keyList=advance_keys)[0]
 
-            tag = block['tag']
+            if key == 'q':
+                core.quit()
+
+            tag = block.pop('tag')
+
             if tag == 'prompt':
                 # play or print an easy question
                 pass
@@ -397,9 +401,9 @@ class Experiment(object):
 def main():
     participant_data = get_subj_info(
         'gui_info.yaml',
-        # A simple function to determine if the data file exists, provided
-        # subj_info data. Used to check for uniqueness in subj_ids when
-        # getting info from gui.
+        # check_exists is a simple function to determine if the data file
+        # exists, provided subj_info data. Here it's used to check for
+        # uniqueness in subj_ids when getting info from gui.
         check_exists=lambda subj_info:
             Participant(**subj_info).data_file.exists()
     )
