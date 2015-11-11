@@ -47,13 +47,16 @@ class Participant(UserDict):
         kwargs_in_order = all([kwg in self._order for kwg in kwargs])
         assert correct_len & kwargs_in_order, "_order doesn't match kwargs"
 
-        return super(Participant, self).__init__(**kwargs)
+        self.data = dict(**kwargs)
 
     def keys(self):
         return self._order
 
     @property
     def data_file(self):
+        if not Path(self.DATA_DIR).exists():
+            Path(self.DATA_DIR).mkdir()
+
         if not self._data_file:
             data_file_name = '{subj_id}.csv'.format(**self)
             self._data_file = Path(self.DATA_DIR, data_file_name)
@@ -72,7 +75,7 @@ class Participant(UserDict):
         self._write_line(self.DATA_DELIMITER.join(row_data))
 
     def _write_line(self, row):
-        with open(self.data_file, 'r') as f:
+        with open(self.data_file, 'w') as f:
             f.write(row + '\n')
 
 
@@ -81,6 +84,7 @@ class Trials(UserList):
     COLUMNS = [
         # Trial columns
         'block',
+        'block_type',
         'trial',
 
         # Stimuli columns
@@ -182,6 +186,7 @@ class Trials(UserList):
         trials = add_block(trials, 50, name='block', start=1, groupby='cue',
                            seed=seed)
         trials = smart_shuffle(trials, col='cue', block='block', seed=seed)
+        trials['block_type'] = 'test'
         trials['trial'] = range(len(trials))
 
         # Reorcder columns
@@ -406,7 +411,7 @@ class Experiment(object):
 
 def main():
     participant_data = get_subj_info(
-        'gui_info.yaml',
+        'gui.yaml',
         # check_exists is a simple function to determine if the data file
         # exists, provided subj_info data. Here it's used to check for
         # uniqueness in subj_ids when getting info from gui.
@@ -441,7 +446,7 @@ def main():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('command', choices=['run', 'trials', 'instructions'],
-                        default='run')
+                        nargs='?', default='run')
     parser.add_argument('--output', '-o', help='Name of output file')
 
     args = parser.parse_args()

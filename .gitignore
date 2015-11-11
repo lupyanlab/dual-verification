@@ -1,5 +1,6 @@
 .DS_Store
 *.pyc
+*.pickle
 .Rproj.user
 .Rhistory
 .RData

@@ -3,6 +3,7 @@ import os
 import random
 
 import unipath
+import yaml
 
 from psychopy import prefs
 prefs.general.audioLib = ['pyo', ]
@@ -54,7 +55,7 @@ def get_subj_info(gui_yaml, check_exists, save_order=True):
     while True:
         # Bring up the dialogue
         dlg = gui.DlgFromDict(gui_data, order=ordered_names,
-                              fixed=fixed_fields, tip=gui_tips)
+                              fixed=fixed_fields, tip=field_tips)
 
         if not dlg.OK:
             core.quit()
