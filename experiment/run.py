@@ -21,15 +21,13 @@ from labtools.trials_functions import (counterbalance, expand, extend,
 class Participant(UserDict):
     """ Store participant data and provide helper functions.
 
-    >>> participant = Participant(subj_id=100, seed=539)
-
+    >>> participant = Participant(subj_id=100, seed=539,
+                                  _order=['subj_id', 'seed'])
     >>> participants.data_file
     # data/100.csv
-
-    >>> participant.write_header(['subj_id', 'seed', 'trial', 'is_correct'])
+    >>> participant.write_header(['trial', 'is_correct'])
     # writes "subj_id,seed,trial,is_correct\n" to the data file
     # and saves input as the order of columns in the output
-
     >>> participant.write_trial({'trial': 1, 'is_correct': 1})
     # writes "100,539,1,1\n" to the data file
     """
