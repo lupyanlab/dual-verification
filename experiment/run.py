@@ -227,9 +227,10 @@ class Experiment(object):
 
         self.win = visual.Window(fullscr=True, units='pix')
 
-        text_kwargs = dict(height=20, font='Consolas')
+        text_kwargs = dict(height=40, font='Consolas', color='black')
         self.ready = visual.TextStim(self.win, text='+', **text_kwargs)
-        self.prompt = visual.TextStim(self.win, text='?', **text_kwargs)
+        self.prompt = visual.TextStim(self.win, text='Yes or No?',
+                                      **text_kwargs)
 
         self.questions = load_sounds(Path(self.STIM_DIR, 'questions'))
         self.cues = load_sounds(Path(self.STIM_DIR, 'cues'))
@@ -246,21 +247,8 @@ class Experiment(object):
 
         self.timer = core.Clock()
 
-    def run_trial(self, trial=None):
-        """ Run a trial using a dict of settings.
-
-        If trial settings are not provided, defaults will be used for testing.
-        """
-        if trial is None:
-            trial = dict(
-                question_slug='is-it-used-in-circuses',
-                cue='elephant',
-                mask_type='mask',
-                response_type='prompt',
-                pic='',
-                correct_response='yes'
-            )
-
+    def run_trial(self, trial):
+        """ Run a trial using a dict of settings. """
         question = self.questions[trial['question_slug']]
         cue = self.cues[trial['cue']]
 
@@ -336,7 +324,7 @@ class Experiment(object):
         trial['is_correct'] = is_correct
 
         self.feedback[is_correct].play()
-        self.core.wait(self.waits['iti'])
+        core.wait(self.waits['iti'])
 
         return trial
 
@@ -385,14 +373,12 @@ class Experiment(object):
             if key in ['up', 'down']:
                 self.feedback[1].play()
 
-
     def show_end_of_practice_screen(self):
         visual.TextStim(self.win, text=self.texts['end_of_practice'],
                         height=30, wrapWidth=600, color='black',
                         font='Consolas').draw()
         self.win.flip()
         event.waitKeys(keyList=['space', ])
-
 
     def show_break_screen(self):
         visual.TextStim(self.win, text=self.texts['break_screen'],
@@ -445,7 +431,7 @@ def main():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('command', choices=['run', 'trials', 'instructions'],
+    parser.add_argument('command', choices=['run', 'trials', 'instructions', 'test'],
                         nargs='?', default='run')
     parser.add_argument('--output', '-o', help='Name of output file')
 
@@ -457,5 +443,17 @@ if __name__ == '__main__':
     elif args.command == 'instructions':
         experiment = Experiment('settings.yaml', 'texts.yaml')
         experiment.show_instructions()
+    elif args.command == 'test':
+        default_trial_settings = dict(
+            question_slug='is-it-used-in-circuses',
+            cue='elephant',
+            mask_type='mask',
+            response_type='pic',
+            pic='elephant',
+            correct_response='yes'
+        )
+
+        experiment = Experiment('settings.yaml', 'texts.yaml')
+        print experiment.run_trial(default_trial_settings)
     else:
         main()
