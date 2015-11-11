@@ -4,6 +4,8 @@ import random
 
 import unipath
 
+from psychopy import prefs
+prefs.general.audioLib = ['pyo', ]
 from psychopy import core, event, visual, data, gui, misc, sound
 
 def get_subj_info(gui_yaml, check_exists, save_order=True):
@@ -18,7 +20,8 @@ def get_subj_info(gui_yaml, check_exists, save_order=True):
     gui_yaml: str, Path to config file in yaml format.
     check_exists: function, Computes a data file path from the gui data, and
         checks for its existence. If the file exists, an error is displayed.
-    save_order: bool, Should the key order be saved in "_order"? Default is True.
+    save_order: bool, Should the key order be saved in "_order"? Defaults to
+        True.
 
     Returns
     -------
