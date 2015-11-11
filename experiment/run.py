@@ -228,12 +228,12 @@ class Experiment(object):
         self.ready = visual.TextStim(self.win, text='+', **text_kwargs)
         self.prompt = visual.TextStim(self.win, text='?', **text_kwargs)
 
-        # self.questions = load_sounds(Path(self.STIM_DIR, 'questions'))
-        # self.cues = load_sounds(Path(self.STIM_DIR, 'cues'))
+        self.questions = load_sounds(Path(self.STIM_DIR, 'questions'))
+        self.cues = load_sounds(Path(self.STIM_DIR, 'cues'))
 
-        image_kwargs = dict(win=self.win, pos=[0, 100], size=[200, 200])
-        # self.mask = DynamicMask(Path(self.STIM_DIR, 'dynamic_mask'),
-        #                         **image_kwargs)
+        image_kwargs = dict(win=self.win, pos=[0, 100], size=[400, 400])
+        self.mask = DynamicMask(Path(self.STIM_DIR, 'dynamic_mask'),
+                                **image_kwargs)
         self.pics = load_images(Path(self.STIM_DIR, 'pics'), **image_kwargs)
 
         feedback_dir = Path(self.STIM_DIR, 'feedback')
@@ -340,40 +340,44 @@ class Experiment(object):
     def show_instructions(self):
         introduction = sorted(self.texts['introduction'].items())
 
-        text_kwargs = dict(height=30, wrapWidth=600, color='black',
-                           font='Consolas')
-        main = visual.TextStim(self.win, **text_kwargs)
+        text_kwargs = dict(wrapWidth=800, color='black', font='Consolas')
+        main = visual.TextStim(self.win, pos=[0, 350], **text_kwargs)
+        example = visual.TextStim(self.win, pos=[0, -100], **text_kwargs)
+        example.setHeight(30)
 
         for i, block in introduction:
-            main.setText(block['text'])
+            # For logic continent on block kwargs:
+            tag = block.pop('tag', None)
+            example_txt = block.pop('example', None)
+            advance_keys = [block.get('advance', 'space'), 'q']
+
+            # Draw main
+            main.setText(block['main'])
+            if tag == 'title':
+                main.setHeight(50)
+            else:
+                main.setHeight(20)
             main.draw()
-            advance_keys = ['space', 'q']
+
+            # Draw example
+            if example_txt:
+                example.setText(example_txt)
+                example.draw()
+
+            if tag == 'pic_apple':
+                self.pics['apple'].draw()
+            elif tag == 'mask':
+                self.mask.draw()
+
             self.win.flip()
             key = event.waitKeys(keyList=advance_keys)[0]
 
             if key == 'q':
                 core.quit()
 
-            tag = block.pop('tag')
+            if key in ['up', 'down']:
+                self.feedback[1].play()
 
-            if tag == 'prompt':
-                # play or print an easy question
-                pass
-            elif tag == 'weird':
-                # play or print a weird question
-                pass
-            elif tag == 'close':
-                # play or print a close but not all question
-                pass
-            elif tag == 'pic':
-                # show a picture
-                pass
-            elif tag == 'nopic':
-                # show an incorrect picture
-                pass
-            elif tag == 'mask':
-                # show the masks
-                pass
 
     def show_end_of_practice_screen(self):
         visual.TextStim(self.win, text=self.texts['end_of_practice'],
