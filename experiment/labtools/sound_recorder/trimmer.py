@@ -13,4 +13,4 @@ back_trim_ms = 400
 for sound_wav in originals:
     audio_segment = pydub.AudioSegment.from_wav(sound_wav)
     trimmed = audio_segment[front_trim_ms:-back_trim_ms]
-    trimmed.export(unipath.Path(trimmed_dir, sound_wav.name))
+    trimmed.export(unipath.Path(trimmed_dir, sound_wav.name), format='wav')
