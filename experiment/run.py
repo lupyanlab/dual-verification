@@ -221,6 +221,7 @@ class Experiment(object):
 
         self.waits = exp_info.pop('waits')
         self.response_keys = exp_info.pop('response_keys')
+        self.survey_url = exp_info.pop('survey_url')
 
         with open(texts_yaml, 'r') as f:
             self.texts = yaml.load(f)
@@ -428,10 +429,13 @@ def main():
 
     experiment.show_end_of_experiment_screen()
 
+    import webbrowser
+    webbrowser.open(experiment.survey_url.format(**participant))
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('command', choices=['run', 'trials', 'instructions', 'single_trial'],
+    parser.add_argument('command', choices=['run', 'trials', 'instructions', 'test', 'survey'],
                         nargs='?', default='run')
     parser.add_argument('--output', '-o', help='Name of output file')
 
@@ -443,7 +447,7 @@ if __name__ == '__main__':
     elif args.command == 'instructions':
         experiment = Experiment('settings.yaml', 'texts.yaml')
         experiment.show_instructions()
-    elif args.command == 'single_trial':
+    elif args.command == 'test':
         trial_settings = dict(
             question_slug='is-it-used-in-circuses',
             cue='elephant',
@@ -457,5 +461,9 @@ if __name__ == '__main__':
         trial_data = experiment.run_trial(trial_settings)
         import pprint
         pprint.pprint(trial_data)
+    elif args.command == 'survey':
+        experiment = Experiment('settings.yaml', 'texts.yaml')
+        import webbrowser
+        webbrowser.open(experiment.survey_url.format(subj_id='TEST_SUBJ', computer='TEST_COMPUTER'))
     else:
         main()

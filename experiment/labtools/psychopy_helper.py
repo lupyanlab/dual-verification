@@ -1,12 +1,11 @@
 #! /usr/bin/env python
 import os
 import random
+import socket
 
 import unipath
 import yaml
 
-from psychopy import prefs
-prefs.general.audioLib = ['pyo', ]
 from psychopy import core, event, visual, data, gui, misc, sound
 
 def get_subj_info(gui_yaml, check_exists, save_order=True):
@@ -50,7 +49,8 @@ def get_subj_info(gui_yaml, check_exists, save_order=True):
 
     # Set fixed fields
     gui_data['date'] = data.getDateStr()
-    fixed_fields = ['date', ]
+    gui_data['computer'] = socket.gethostname()
+    fixed_fields = ['date', 'computer']
 
     while True:
         # Bring up the dialogue
