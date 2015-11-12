@@ -1,0 +1,237 @@
+---
+title: "Predictions for dual task experiment"
+author: "Pierce Edmiston"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: flatly
+---
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.width = 5,
+  fig.height = 3,
+  fig.align = "center"
+)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(scales)
+library(grid)
+
+light_blue <- "#9ecae1"
+dark_blue <- "#08519c"
+light_green <- "#a1d99b"
+dark_green <- "#006d2c"
+
+color_scheme <- list(
+  visualmask = dark_blue,
+  visualnomask = light_blue,
+  nonvisualmask = dark_green,
+  nonvisualnomask = light_green
+)
+
+#' Moves row names to mask_type and gathers feat_type from columns
+clean <- function(frame) {
+  frame <- as.data.frame(frame)
+  frame$mask_type <- rownames(frame)
+  rownames(frame) <- NULL
+  gather(frame, feat_type, error_rate, -quest_type, -mask_type)
+}
+
+# Generate the predicted data
+
+prompt_error <- list(
+  quest_type = "prompt",
+  visual    = c(nomask = 0.051, mask = 0.158),
+  nonvisual = c(nomask = 0.069, mask = 0.071)
+) %>% clean
+
+pic_error <- list(
+  quest_type = "picture",
+  visual    = c(nomask = 0.01, mask = 0.08),
+  nonvisual = c(nomask = 0.04, mask = 0.09)
+) %>% clean
+
+experiment_levels <- c("question_first", "dualtask")
+
+dualtask <- rbind(prompt_error, pic_error) %>%
+  mutate(
+    experiment = factor("dualtask", levels = experiment_levels),
+    mask_type = factor(mask_type, levels = c("nomask", "mask")),
+    feat_type = factor(feat_type, levels = c("nonvisual", "visual")),
+    feat_label = factor(feat_type, labels = c("Encyclopedic", "Visual")),
+    quest_label = ifelse(quest_type == "prompt", "Answer proposition",
+                         "Verify picture"),
+    fill_id = paste0(feat_type, mask_type)
+  )
+
+scale_x_mask <- scale_x_discrete("", labels = c("No mask", "Mask"))
+scale_y_error <- scale_y_continuous("Error rate", breaks = seq(0, 1, by = 0.05), 
+                                    labels = percent)
+coord_bar_plot <- coord_cartesian(xlim = c(0, 3), ylim = c(0, 0.17))
+theme_bar_plot <- theme_minimal() +
+  theme(
+    legend.position = "none",
+    axis.ticks = element_blank(),
+    panel.margin = unit(2, "lines")
+  )
+```
+
+If we want big effects with the mask, I think we need to embrace a task that 
+more explicitly requires visual imagery. We start the paper off with a new
+Experiment 1 that shows big effects of the mask. I think it will allow us to
+leverage the nuance of the property verification experiments, which is being
+missed by the Reviewers. Experiment 2 demonstrates that the disruption is 
+specific to visual and not encyclopedic knowledge in a task that does not 
+explicitly require vision. In Experiment 3, the orientation discrimination 
+experiments demonstrate that the mask does not just make performance on visual 
+tasks worse, it reduces both the positives and the negatives of thinking about 
+what something looks like (because in the task you might think about the wrong 
+thing and therefore imagery hurts performance). In the follow ups Experiments 3B
+and 3C, we demonstrate that the interference is modality specific, and does not 
+need to presented simultaneously to the cues in order to be effective.
+
+Ok, so what is the visual imagery task? How about this:
+
+```{r, engine = "dot", fig.width = 5}
+digraph {
+  question -> cue -> {prompt, picture};
+
+  question[label="Does it have a long neck?", shape=box];
+  cue[label="camel", shape=box];
+  prompt[label="Answer proposition", shape=ellipse];
+  picture[label="Verify picture", shape=ellipse];
+
+  rankdir="LR";
+  splines=false;
+}
+```
+
+On each trial, participants hear one of the questions, e.g., “Does it have a
+flat surface?” followed by a cue, “table”. On most of the trials, after the cue
+they are presented a prompt for them to answer the question, making this
+experiment just like the existing one, with the addition of the longer mask
+presented during the question and cue intervals.
+
+The difference is that on a subset of the trials, instead of a prompt they are
+presented a picture. They still respond “yes” or “no”, but this time they are
+identifying whether or not the picture was named by the cue.
+
+The addition of these picture trials does a number of things to expand our
+findings from the other experiments.
+
+  1.  It makes this a dual task experiment, which makes it harder, increasing 
+      overall error rates and likely the effect of the mask as well.
+  2.  It forces people to look at the screen during the trial (which is my
+      biggest concern with regard to making all of the stimuli auditory).
+  3.  It encourages people to visualize the objects. As I said, the goal of this
+      experiment is to embrace visual imagery, and show that the mask has a huge 
+      effect. The subsequent experiments systematically remove all incentives to 
+      visualize, and we still find an effect of the mask. In Experiment 2, we remove
+      the picture trials, and in Experiment 3 we remove the benefit of visualizing
+      altogether.
+
+So what are we going to find? First imagine this task on the visual feature
+trials. You hear a question like “Does it have a flat surface?” and you’re
+imagining flat surfaces. You get the cue “table” and you’re definitely picturing
+a table because doing so makes it easier both to answer the question and to
+verify a picture of a possible table. The mask makes all of this harder to do.
+
+```{r}
+visual_feat_colors <- color_scheme[c("visualnomask", "visualmask")] %>% unlist %>% unname
+dualtask %>%
+  filter(feat_type == "visual") %>%
+  ggplot(aes(x = mask_type, y = error_rate, fill = mask_type)) +
+    geom_bar(stat = "identity", width = 0.9) +
+    scale_fill_manual(values = visual_feat_colors) +
+    facet_wrap("quest_label", ncol = 2) +
+    ggtitle("Visual questions") +
+    scale_x_mask +
+    scale_y_error +
+    coord_bar_plot +
+    theme_bar_plot
+```
+
+Now imagine an encyclopedic feature trial. You hear a question like “Does it
+live in Africa?” and get “zebra”. What is the mask going to make harder,
+answering the proposition or verifying a picture of a zebra?
+
+I’m predicting the mask will only make verifying the picture harder. Answering
+an encyclopedic question will not be any harder when the mask is present, but
+verifying a picture of the named object will still be affected by the mask.
+
+```{r}
+nonvisual_feat_colors <- color_scheme[c("nonvisualnomask", "nonvisualmask")] %>% unlist %>% unname
+dualtask %>%
+  filter(feat_type == "nonvisual") %>%
+  ggplot(aes(x = mask_type, y = error_rate, fill = mask_type)) +
+    geom_bar(stat = "identity", width = 0.9) +
+    scale_fill_manual(values = nonvisual_feat_colors) +
+    facet_wrap("quest_label", ncol = 2) +
+    ggtitle("Encyclopedic questions") +
+    scale_x_mask +
+    scale_y_error +
+    coord_bar_plot +
+    theme_bar_plot
+```
+
+Here’s something else I like about this design. We can compare responses to the
+prompts independent of the picture verification trials to the same questions in
+the original property verification experiment. That way we can measure directly
+the effect of the dual task on baseline performance.
+
+We’ll still find the interaction such that responses to visual questions are
+more negatively affected by the mask than responses to non visual questions.
+
+```{r}
+dualtask %>%
+  filter(quest_type == "prompt") %>%
+  ggplot(aes(x = mask_type, y = error_rate, fill = fill_id)) +
+    geom_bar(stat = "identity") +
+    scale_fill_manual(values = unlist(color_scheme)) +
+    facet_wrap("feat_label") +
+    ggtitle("Answer proposition (replication)") +
+    scale_x_mask +
+    scale_y_error +
+    coord_bar_plot +
+    theme_bar_plot
+```
+
+But if there is any effect of the secondary, visual task (the possibility that
+some trials might involve picture verification), I bet we’ll see it on the
+encyclopedic feature trials. I think the secondary, visual task will decrease
+baseline performance on the encyclopedic questions.
+
+```{r}
+dualtask_nonvisual <- dualtask %>%
+  filter(feat_type == "nonvisual", quest_type == "prompt")
+
+question_first_nonvisual <- data_frame(
+  experiment = factor("question_first", levels = experiment_levels),
+  feat_type = "nonvisual",
+  mask_type = c("nomask", "mask"),
+  error_rate = dualtask_nonvisual$error_rate - 0.03
+)
+
+plyr::rbind.fill(dualtask_nonvisual, question_first_nonvisual) %>%
+  mutate(experiment_label = factor(experiment, labels = c("Question first", "Dual task"))) %>%
+  ggplot(aes(x = mask_type, y = error_rate, fill = mask_type)) +
+    geom_bar(stat = "identity") +
+    scale_fill_manual(values = nonvisual_feat_colors) +
+    facet_wrap("experiment_label", ncol = 2) +
+    ggtitle("Effect of secondary task on\nencycopedic feature verification") +
+    scale_x_mask +
+    scale_y_error +
+    coord_bar_plot +
+    theme_bar_plot
+```
+
+If we show that making encyclopedic feature questions harder (by having some
+picture verification catch trials) still doesn’t make the mask disrupt
+performance, then the Reviewer’s point that the effect of the mask is contingent
+on overall difficulty of the question (and not modality of the knowledge)
+doesn’t hold.
