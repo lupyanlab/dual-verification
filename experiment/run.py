@@ -9,8 +9,18 @@ import pandas as pd
 from unipath import Path
 
 from psychopy import prefs
-prefs.general.audioLib = ['pyo', ]
+
+try:
+    import pyo
+except ImportError:
+    print 'pyo not found!'
+
+prefs.general['audioLib'] = ['pyo']
 from psychopy import visual, core, event, sound
+
+print 'initializing pyo to 48000'
+sound.init(48000, buffer=128)
+print 'Using %s(with %s) for sounds' % (sound.audioLib, sound.audioDriver)
 
 from labtools.psychopy_helper import get_subj_info, load_sounds, load_images
 from labtools.dynamic_mask import DynamicMask
