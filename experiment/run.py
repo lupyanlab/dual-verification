@@ -99,6 +99,7 @@ class Trials(UserList):
 
         # Stimuli columns
         'proposition_id',
+        'feat_type',
         'question_slug',
         'cue',
         'mask_type',
