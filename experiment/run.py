@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import argparse
-
+import copy
 import yaml
 from UserDict import UserDict
 from UserList import UserList
@@ -21,15 +21,13 @@ from labtools.trials_functions import (counterbalance, expand, extend,
 class Participant(UserDict):
     """ Store participant data and provide helper functions.
 
-    >>> participant = Participant(subj_id=100, seed=539)
-
+    >>> participant = Participant(subj_id=100, seed=539,
+                                  _order=['subj_id', 'seed'])
     >>> participants.data_file
     # data/100.csv
-
-    >>> participant.write_header(['subj_id', 'seed', 'trial', 'is_correct'])
+    >>> participant.write_header(['trial', 'is_correct'])
     # writes "subj_id,seed,trial,is_correct\n" to the data file
     # and saves input as the order of columns in the output
-
     >>> participant.write_trial({'trial': 1, 'is_correct': 1})
     # writes "100,539,1,1\n" to the data file
     """
@@ -49,13 +47,16 @@ class Participant(UserDict):
         kwargs_in_order = all([kwg in self._order for kwg in kwargs])
         assert correct_len & kwargs_in_order, "_order doesn't match kwargs"
 
-        return super(Participant, self).__init__(**kwargs)
+        self.data = dict(**kwargs)
 
     def keys(self):
         return self._order
 
     @property
     def data_file(self):
+        if not Path(self.DATA_DIR).exists():
+            Path(self.DATA_DIR).mkdir()
+
         if not self._data_file:
             data_file_name = '{subj_id}.csv'.format(**self)
             self._data_file = Path(self.DATA_DIR, data_file_name)
@@ -74,7 +75,7 @@ class Participant(UserDict):
         self._write_line(self.DATA_DELIMITER.join(row_data))
 
     def _write_line(self, row):
-        with open(self.data_file, 'r') as f:
+        with open(self.data_file, 'w') as f:
             f.write(row + '\n')
 
 
@@ -83,6 +84,7 @@ class Trials(UserList):
     COLUMNS = [
         # Trial columns
         'block',
+        'block_type',
         'trial',
 
         # Stimuli columns
@@ -184,6 +186,7 @@ class Trials(UserList):
         trials = add_block(trials, 50, name='block', start=1, groupby='cue',
                            seed=seed)
         trials = smart_shuffle(trials, col='cue', block='block', seed=seed)
+        trials['block_type'] = 'test'
         trials['trial'] = range(len(trials))
 
         # Reorcder columns
@@ -224,9 +227,10 @@ class Experiment(object):
 
         self.win = visual.Window(fullscr=True, units='pix')
 
-        text_kwargs = dict(height=20, font='Consolas')
+        text_kwargs = dict(height=40, font='Consolas', color='black')
         self.ready = visual.TextStim(self.win, text='+', **text_kwargs)
-        self.prompt = visual.TextStim(self.win, text='?', **text_kwargs)
+        self.prompt = visual.TextStim(self.win, text='Yes or No?',
+                                      **text_kwargs)
 
         self.questions = load_sounds(Path(self.STIM_DIR, 'questions'))
         self.cues = load_sounds(Path(self.STIM_DIR, 'cues'))
@@ -243,21 +247,8 @@ class Experiment(object):
 
         self.timer = core.Clock()
 
-    def run_trial(self, trial=None):
-        """ Run a trial using a dict of settings.
-
-        If trial settings are not provided, defaults will be used for testing.
-        """
-        if trial is None:
-            trial = dict(
-                question_slug='is-it-used-in-circuses',
-                cue='elephant',
-                mask_type='mask',
-                response_type='prompt',
-                pic='',
-                correct_response='yes'
-            )
-
+    def run_trial(self, trial):
+        """ Run a trial using a dict of settings. """
         question = self.questions[trial['question_slug']]
         cue = self.cues[trial['cue']]
 
@@ -333,16 +324,16 @@ class Experiment(object):
         trial['is_correct'] = is_correct
 
         self.feedback[is_correct].play()
-        self.core.wait(self.waits['iti'])
+        core.wait(self.waits['iti'])
 
         return trial
 
     def show_instructions(self):
         introduction = sorted(self.texts['introduction'].items())
 
-        text_kwargs = dict(wrapWidth=800, color='black', font='Consolas')
-        main = visual.TextStim(self.win, pos=[0, 350], **text_kwargs)
-        example = visual.TextStim(self.win, pos=[0, -100], **text_kwargs)
+        text_kwargs = dict(wrapWidth=1000, color='black', font='Consolas')
+        main = visual.TextStim(self.win, pos=[0, 250], **text_kwargs)
+        example = visual.TextStim(self.win, pos=[0, -50], **text_kwargs)
         example.setHeight(30)
 
         for i, block in introduction:
@@ -365,9 +356,13 @@ class Experiment(object):
                 example.draw()
 
             if tag == 'pic_apple':
-                self.pics['apple'].draw()
+                img_path = str(Path('stimuli', 'pics', 'apple.bmp'))
+                apple = visual.ImageStim(self.win, img_path, pos=[0, -100])
+                apple.draw()
             elif tag == 'mask':
-                self.mask.draw()
+                img_path = str(Path('stimuli', 'dynamic_mask', 'colored_1.png'))
+                mask = visual.ImageStim(self.win, img_path, pos=[0, -100])
+                mask.draw()
 
             self.win.flip()
             key = event.waitKeys(keyList=advance_keys)[0]
@@ -378,14 +373,12 @@ class Experiment(object):
             if key in ['up', 'down']:
                 self.feedback[1].play()
 
-
     def show_end_of_practice_screen(self):
         visual.TextStim(self.win, text=self.texts['end_of_practice'],
                         height=30, wrapWidth=600, color='black',
                         font='Consolas').draw()
         self.win.flip()
         event.waitKeys(keyList=['space', ])
-
 
     def show_break_screen(self):
         visual.TextStim(self.win, text=self.texts['break_screen'],
@@ -404,7 +397,7 @@ class Experiment(object):
 
 def main():
     participant_data = get_subj_info(
-        'gui_info.yaml',
+        'gui.yaml',
         # check_exists is a simple function to determine if the data file
         # exists, provided subj_info data. Here it's used to check for
         # uniqueness in subj_ids when getting info from gui.
@@ -438,8 +431,8 @@ def main():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('command', choices=['run', 'trials', 'instructions'],
-                        default='run')
+    parser.add_argument('command', choices=['run', 'trials', 'instructions', 'test'],
+                        nargs='?', default='run')
     parser.add_argument('--output', '-o', help='Name of output file')
 
     args = parser.parse_args()
@@ -450,5 +443,17 @@ if __name__ == '__main__':
     elif args.command == 'instructions':
         experiment = Experiment('settings.yaml', 'texts.yaml')
         experiment.show_instructions()
+    elif args.command == 'test':
+        default_trial_settings = dict(
+            question_slug='is-it-used-in-circuses',
+            cue='elephant',
+            mask_type='mask',
+            response_type='pic',
+            pic='elephant',
+            correct_response='yes'
+        )
+
+        experiment = Experiment('settings.yaml', 'texts.yaml')
+        print experiment.run_trial(default_trial_settings)
     else:
         main()
