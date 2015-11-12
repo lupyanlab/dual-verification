@@ -182,11 +182,24 @@ class Trials(UserList):
         for col in ['response', 'rt', 'is_correct']:
             trials[col] = ''
 
+        # Add practice trials
+        num_practice = 8
+        practice_ix = prng.choice(trials.index, num_practice)
+        practice_trials = trials.ix[practice_ix, ]
+        practice_trials['block'] = 0
+        practice_trials['block_type'] = 'practice'
+        trials.drop(practice_ix, inplace=True)
+
         # Finishing touches
         trials = add_block(trials, 50, name='block', start=1, groupby='cue',
                            seed=seed)
         trials = smart_shuffle(trials, col='cue', block='block', seed=seed)
         trials['block_type'] = 'test'
+
+        # Merge practice trials
+        trials = pd.concat([practice_trials, trials])
+
+        # Label trial
         trials['trial'] = range(len(trials))
 
         # Reorcder columns
@@ -324,7 +337,12 @@ class Experiment(object):
         trial['rt'] = rt * 1000
         trial['is_correct'] = is_correct
 
-        self.feedback[is_correct].play()
+        if trial['block_type'] == 'practice':
+            self.feedback[is_correct].play()
+
+        if response == 'timeout':
+            self.show_timeout_screen()
+
         core.wait(self.waits['iti'])
 
         return trial
@@ -376,6 +394,13 @@ class Experiment(object):
 
     def show_end_of_practice_screen(self):
         visual.TextStim(self.win, text=self.texts['end_of_practice'],
+                        height=30, wrapWidth=600, color='black',
+                        font='Consolas').draw()
+        self.win.flip()
+        event.waitKeys(keyList=['space', ])
+
+    def show_timeout_screen(self):
+        visual.TextStim(self.win, text=self.texts['timeout'],
                         height=30, wrapWidth=600, color='black',
                         font='Consolas').draw()
         self.win.flip()
