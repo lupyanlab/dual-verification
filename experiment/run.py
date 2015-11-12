@@ -75,7 +75,7 @@ class Participant(UserDict):
         self._write_line(self.DATA_DELIMITER.join(row_data))
 
     def _write_line(self, row):
-        with open(self.data_file, 'w') as f:
+        with open(self.data_file, 'a') as f:
             f.write(row + '\n')
 
 
@@ -236,7 +236,7 @@ class Experiment(object):
         self.questions = load_sounds(Path(self.STIM_DIR, 'questions'))
         self.cues = load_sounds(Path(self.STIM_DIR, 'cues'))
 
-        image_kwargs = dict(win=self.win, pos=[0, 100], size=[400, 400])
+        image_kwargs = dict(win=self.win, size=[400, 400])
         self.mask = DynamicMask(Path(self.STIM_DIR, 'dynamic_mask'),
                                 **image_kwargs)
         self.pics = load_images(Path(self.STIM_DIR, 'pics'), **image_kwargs)
@@ -333,7 +333,7 @@ class Experiment(object):
         introduction = sorted(self.texts['introduction'].items())
 
         text_kwargs = dict(wrapWidth=1000, color='black', font='Consolas')
-        main = visual.TextStim(self.win, pos=[0, 250], **text_kwargs)
+        main = visual.TextStim(self.win, pos=[0, 200], **text_kwargs)
         example = visual.TextStim(self.win, pos=[0, -50], **text_kwargs)
         example.setHeight(30)
 
@@ -448,7 +448,7 @@ if __name__ == '__main__':
         experiment = Experiment('settings.yaml', 'texts.yaml')
         experiment.show_instructions()
     elif args.command == 'test':
-        default_trial_settings = dict(
+        trial_settings = dict(
             question_slug='is-it-used-in-circuses',
             cue='elephant',
             mask_type='mask',
@@ -458,7 +458,9 @@ if __name__ == '__main__':
         )
 
         experiment = Experiment('settings.yaml', 'texts.yaml')
-        print experiment.run_trial(default_trial_settings)
+        trial_data = experiment.run_trial(trial_settings)
+        import pprint
+        pprint.pprint(trial_data)
     elif args.command == 'survey':
         experiment = Experiment('settings.yaml', 'texts.yaml')
         import webbrowser
