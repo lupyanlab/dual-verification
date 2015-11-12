@@ -1,5 +1,5 @@
 waits:
-  ready_duration: 1.0
+  fix_duration: 1.0
   mask_refresh: 0.01
   question_offset_to_cue_onset: 0.4
   cue_offset_to_response_onset: 0.2

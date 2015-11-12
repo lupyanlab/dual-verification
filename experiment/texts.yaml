@@ -54,8 +54,13 @@ introduction:
       Press the SPACEBAR to continue.
   7:
     main: >
-      You are done with the instructions. Let the experimenter know you
-      are ready to begin the experiment. You will begin with some practice trials.
+      You are done with the instructions. If you have any questions, let the
+      experimenter know. You will begin with some practice trials. Press the
+      SPACEBAR when you are ready to begin the practice trials.
+timeout: >
+  You missed one! Please respond as quickly and accurately as you can. Take a
+  moment to rest if you need it. When you are ready to continue, press the
+  SPACEBAR.
 end_of_practice: >
   You've completed the practice trials. Are you ready to begin the
   next part of the experiment? You won't receive any feedback for this part,

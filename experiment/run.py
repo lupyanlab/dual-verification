@@ -182,11 +182,24 @@ class Trials(UserList):
         for col in ['response', 'rt', 'is_correct']:
             trials[col] = ''
 
+        # Add practice trials
+        num_practice = 8
+        practice_ix = prng.choice(trials.index, num_practice)
+        practice_trials = trials.ix[practice_ix, ]
+        practice_trials['block'] = 0
+        practice_trials['block_type'] = 'practice'
+        trials.drop(practice_ix, inplace=True)
+
         # Finishing touches
         trials = add_block(trials, 50, name='block', start=1, groupby='cue',
                            seed=seed)
         trials = smart_shuffle(trials, col='cue', block='block', seed=seed)
         trials['block_type'] = 'test'
+
+        # Merge practice trials
+        trials = pd.concat([practice_trials, trials])
+
+        # Label trial
         trials['trial'] = range(len(trials))
 
         # Reorcder columns
@@ -228,18 +241,22 @@ class Experiment(object):
 
         self.win = visual.Window(fullscr=True, units='pix')
 
-        text_kwargs = dict(height=40, font='Consolas', color='black')
-        self.ready = visual.TextStim(self.win, text='+', **text_kwargs)
+        text_kwargs = dict(height=60, font='Consolas', color='black')
+        self.fix = visual.TextStim(self.win, text='+', **text_kwargs)
         self.prompt = visual.TextStim(self.win, text='Yes or No?',
                                       **text_kwargs)
 
         self.questions = load_sounds(Path(self.STIM_DIR, 'questions'))
         self.cues = load_sounds(Path(self.STIM_DIR, 'cues'))
 
-        image_kwargs = dict(win=self.win, size=[400, 400])
+        size = [400, 400]
+        image_kwargs = dict(win=self.win, size=size)
         self.mask = DynamicMask(Path(self.STIM_DIR, 'dynamic_mask'),
                                 **image_kwargs)
         self.pics = load_images(Path(self.STIM_DIR, 'pics'), **image_kwargs)
+        frame_buffer = 20
+        self.frame = visual.Rect(self.win, width=size[0]+20, height=size[1]+20,
+                                 lineColor='black')
 
         feedback_dir = Path(self.STIM_DIR, 'feedback')
         self.feedback = {}
@@ -256,21 +273,23 @@ class Experiment(object):
         question_dur = question.getDuration()
         cue_dur = question.getDuration()
 
-        stim_during_audio = []
+        stim_during_audio = [self.fix, ]
         if trial['mask_type'] == 'mask':
-            stim_during_audio.append(self.mask)
+            stim_during_audio.insert(0, self.mask)
 
         if trial['response_type'] == 'prompt':
             response_stim = self.prompt
         else:
             response_stim = self.pics[trial['pic']]
 
+        self.frame.autoDraw = True
+
         # Start trial presentation
         # ------------------------
         self.timer.reset()
-        self.ready.draw()
+        self.fix.draw()
         self.win.flip()
-        core.wait(self.waits['ready_duration'])
+        core.wait(self.waits['fix_duration'])
 
         # Play the question
         self.timer.reset()
@@ -306,6 +325,7 @@ class Experiment(object):
         response = event.waitKeys(maxWait=self.waits['max_wait'],
                                   keyList=self.response_keys.keys(),
                                   timeStamped=self.timer)
+        self.frame.autoDraw = False
         self.win.flip()
         # ----------------------
         # End trial presentation
@@ -324,7 +344,12 @@ class Experiment(object):
         trial['rt'] = rt * 1000
         trial['is_correct'] = is_correct
 
-        self.feedback[is_correct].play()
+        if trial['block_type'] == 'practice':
+            self.feedback[is_correct].play()
+
+        if response == 'timeout':
+            self.show_timeout_screen()
+
         core.wait(self.waits['iti'])
 
         return trial
@@ -376,6 +401,13 @@ class Experiment(object):
 
     def show_end_of_practice_screen(self):
         visual.TextStim(self.win, text=self.texts['end_of_practice'],
+                        height=30, wrapWidth=600, color='black',
+                        font='Consolas').draw()
+        self.win.flip()
+        event.waitKeys(keyList=['space', ])
+
+    def show_timeout_screen(self):
+        visual.TextStim(self.win, text=self.texts['timeout'],
                         height=30, wrapWidth=600, color='black',
                         font='Consolas').draw()
         self.win.flip()
@@ -449,6 +481,7 @@ if __name__ == '__main__':
         experiment.show_instructions()
     elif args.command == 'test':
         trial_settings = dict(
+            block_type = 'practice',
             question_slug='is-it-used-in-circuses',
             cue='elephant',
             mask_type='mask',
