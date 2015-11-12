@@ -1,0 +1,45 @@
+---
+title: "Dual Verification Results"
+author: "Pierce Edmiston"
+date: "November 12, 2015"
+output:
+  html_document:
+    theme: flatly
+---
+
+```{r, echo = FALSE, message = FALSE}
+library(dplyr)
+library(ggplot2)
+library(lme4)
+
+# Color scheme
+light_blue <- "#9ecae1"
+dark_blue <- "#08519c"
+light_green <- "#a1d99b"
+dark_green <- "#006d2c"
+```
+
+```{r}
+devtools::load_all("dualverification")
+# data(dualverification)
+dualverification <- compile("experiment/data/") %>%
+  recode
+```
+
+```{r}
+ggplot(dualverification, aes(x = mask_c, y = is_error, fill = mask_c)) +
+  geom_bar(stat = "summary", fun.y = "mean") +
+  facet_grid(feat_label ~ response_label) +
+  scale_fill_manual(values = c(light_blue, dark_blue)) +
+  theme(legend.position = "none")
+```
+
+# Answer proposition (replication)
+
+```{r}
+ggplot(filter(dualverificaation, response_type == "prompt"),
+       aes(x = mask_c, y = is_error, fill = feat_mask_type)) +
+  geom_bar(stat = "summary", fun.y = "mean") +
+  facet_wrap("feat_label") +
+  scale_fill_manual(values = c(light_green, dark_green, light_blue, dark_blue))
+```
