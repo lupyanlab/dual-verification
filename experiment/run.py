@@ -221,6 +221,7 @@ class Experiment(object):
 
         self.waits = exp_info.pop('waits')
         self.response_keys = exp_info.pop('response_keys')
+        self.survey_url = exp_info.pop('survey_url')
 
         with open(texts_yaml, 'r') as f:
             self.texts = yaml.load(f)
@@ -428,10 +429,13 @@ def main():
 
     experiment.show_end_of_experiment_screen()
 
+    import webbrowser
+    webbrowser.open(experiment.survey_url.format(**participant))
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('command', choices=['run', 'trials', 'instructions', 'test'],
+    parser.add_argument('command', choices=['run', 'trials', 'instructions', 'test', 'survey'],
                         nargs='?', default='run')
     parser.add_argument('--output', '-o', help='Name of output file')
 
@@ -455,5 +459,9 @@ if __name__ == '__main__':
 
         experiment = Experiment('settings.yaml', 'texts.yaml')
         print experiment.run_trial(default_trial_settings)
+    elif args.command == 'survey':
+        experiment = Experiment('settings.yaml', 'texts.yaml')
+        import webbrowser
+        webbrowser.open(experiment.survey_url.format(subj_id='TEST_SUBJ', room='TEST_ROOM'))
     else:
         main()
