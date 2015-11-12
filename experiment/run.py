@@ -462,6 +462,6 @@ if __name__ == '__main__':
     elif args.command == 'survey':
         experiment = Experiment('settings.yaml', 'texts.yaml')
         import webbrowser
-        webbrowser.open(experiment.survey_url.format(subj_id='TEST_SUBJ', room='TEST_ROOM'))
+        webbrowser.open(experiment.survey_url.format(subj_id='TEST_SUBJ', computer='TEST_COMPUTER'))
     else:
         main()
