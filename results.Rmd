@@ -11,7 +11,8 @@ output:
 knitr::opts_chunk$set(
   echo = FALSE,
   message = FALSE,
-  warning = FALSE
+  warning = FALSE,
+  fig.path = 'results-figs/'
 )
 
 library(dplyr)
@@ -53,7 +54,7 @@ dualverification <- compile("experiment/data/") %>%
 
 # Overall results
 
-```{r}
+```{r, overall}
 ggplot(dualverification, aes(x = mask_c, y = is_error, fill = feat_mask)) +
   geom_bar(stat = "summary", fun.y = "mean", alpha = 0.6) +
   facet_grid(feat_label ~ response_label) +
@@ -65,7 +66,7 @@ ggplot(dualverification, aes(x = mask_c, y = is_error, fill = feat_mask)) +
 
 # Answer proposition (replication)
 
-```{r}
+```{r, prompt}
 ggplot(filter(dualverification, response_type == "prompt"),
        aes(x = mask_c, y = is_error, fill = feat_mask)) +
   geom_bar(stat = "summary", fun.y = "mean", alpha = 0.6) +
@@ -73,7 +74,8 @@ ggplot(filter(dualverification, response_type == "prompt"),
   scale_x_mask +
   scale_y_error +
   scale_fill_featmask +
-  base_theme
+  base_theme +
+  ggtitle("Answer proposition")
 ```
 
 ```{r, echo = 1}
@@ -86,7 +88,7 @@ tidy(prompt_mod, effect = "fixed") %>%
 
 # Verify picture
 
-```{r}
+```{r, picture}
 ggplot(filter(dualverification, response_type == "pic"),
        aes(x = mask_c, y = is_error, fill = feat_mask)) +
   geom_bar(stat = "summary", fun.y = "mean", alpha = 0.6) +
@@ -94,7 +96,8 @@ ggplot(filter(dualverification, response_type == "pic"),
   scale_x_mask +
   scale_y_error +
   scale_fill_featmask +
-  base_theme
+  base_theme +
+  ggtitle("Verify picture")
 ```
 
 ```{r, echo = 1}
