@@ -8,38 +8,99 @@ output:
 ---
 
 ```{r, echo = FALSE, message = FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE
+)
+
 library(dplyr)
 library(ggplot2)
+library(scales)
 library(lme4)
+library(broom)
+
+devtools::load_all("dualverification")
 
 # Color scheme
 light_blue <- "#9ecae1"
 dark_blue <- "#08519c"
 light_green <- "#a1d99b"
 dark_green <- "#006d2c"
+
+bar_fill_values <- c(dark_green, light_green, dark_blue, light_blue)
+
+# Plotting helpers
+scale_y_error <- scale_y_continuous("Error Rate", labels = percent)
+scale_x_mask <- scale_x_continuous("", breaks = c(-0.5, 0.5), labels = c("Blank Screen", "Visual Interference"))
+scale_fill_featmask <- scale_fill_manual(values = bar_fill_values)
+
+base_theme <- theme_minimal() +
+  theme(
+    axis.ticks = element_blank(),
+    legend.position = "none"
+  )
 ```
 
 ```{r}
-devtools::load_all("dualverification")
 # data(dualverification)
 dualverification <- compile("experiment/data/") %>%
-  recode
+  clean %>% 
+  recode %>%
+  # Combine feat_type and mask_type for colors in the plot
+  mutate(feat_mask = paste(feat_type, mask_type, sep = ":"))
 ```
 
+# Overall results
+
 ```{r}
-ggplot(dualverification, aes(x = mask_c, y = is_error, fill = mask_c)) +
-  geom_bar(stat = "summary", fun.y = "mean") +
+ggplot(dualverification, aes(x = mask_c, y = is_error, fill = feat_mask)) +
+  geom_bar(stat = "summary", fun.y = "mean", alpha = 0.6) +
   facet_grid(feat_label ~ response_label) +
-  scale_fill_manual(values = c(light_blue, dark_blue)) +
-  theme(legend.position = "none")
+  scale_x_mask +
+  scale_y_error +
+  scale_fill_featmask +
+  base_theme
 ```
 
 # Answer proposition (replication)
 
 ```{r}
-ggplot(filter(dualverificaation, response_type == "prompt"),
-       aes(x = mask_c, y = is_error, fill = feat_mask_type)) +
-  geom_bar(stat = "summary", fun.y = "mean") +
+ggplot(filter(dualverification, response_type == "prompt"),
+       aes(x = mask_c, y = is_error, fill = feat_mask)) +
+  geom_bar(stat = "summary", fun.y = "mean", alpha = 0.6) +
   facet_wrap("feat_label") +
-  scale_fill_manual(values = c(light_green, dark_green, light_blue, dark_blue))
+  scale_x_mask +
+  scale_y_error +
+  scale_fill_featmask +
+  base_theme
+```
+
+```{r, echo = 1}
+prompt_mod <- glmer(is_error ~ feat_c * mask_c + (1|subj_id),
+                    data = filter(dualverification, response_type == "prompt"),
+                    family = binomial)
+tidy(prompt_mod, effect = "fixed") %>%
+  add_sig_stars
+```
+
+# Verify picture
+
+```{r}
+ggplot(filter(dualverification, response_type == "pic"),
+       aes(x = mask_c, y = is_error, fill = feat_mask)) +
+  geom_bar(stat = "summary", fun.y = "mean", alpha = 0.6) +
+  facet_wrap("feat_label") +
+  scale_x_mask +
+  scale_y_error +
+  scale_fill_featmask +
+  base_theme
+```
+
+```{r, echo = 1}
+pic_mod <- glmer(is_error ~ feat_c * mask_c + (1|subj_id),
+                 data = filter(dualverification, response_type == "pic"),
+                 family = binomial)
+tidy(pic_mod, effects = "fixed") %>%
+  add_sig_stars
 ```
