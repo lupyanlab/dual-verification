@@ -64,13 +64,24 @@ timeout: >
 end_of_practice: >
   You've completed the practice trials. Are you ready to begin the
   next part of the experiment? You won't receive any feedback for this part,
-  so do your best to answer as quickly and accurately as you can. Press the
-  SPACEBAR to begin.
+  so do your best to answer as quickly and accurately as you can.
+
+
+  As you saw in the practice trials, you cannot respond until you see
+  the prompt "Yes or No?" or until you see the picture. Do not try to
+  respond before you see what question you are supposed to answer.
+
+
+  Finally, please make sure to look at the central "+" while you are
+  listening to each question.
+
+
+  When you are ready to being, press the SPACEBAR.
 break_screen: >
-  You've finished a part of the experiment. Take a quick break, but please
+  You've finished one part of the experiment. Take a quick break, but please
   stay in the room. When you are ready to continue, press the SPACEBAR.
 end_of_experiment: >
-  You've finished the experiment. Before you leave, we have a survey for you to
-  fill out. This survey will appear in a web browser after you press the
+  You've finished the experiment. The next thing for you to do is to complete
+  a survey. This survey will appear in a web browser after you press the
   SPACEBAR. If you do not see the survey or have any problems submitting your
   responses, please let the experimenter know. Thank you for participating!
