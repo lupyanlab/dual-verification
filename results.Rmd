@@ -8,46 +8,26 @@ output:
 ---
 
 ```{r, echo = FALSE, message = FALSE}
-knitr::opts_chunk$set(
+library(knitr)
+
+opts_chunk$set(
   echo = FALSE,
   message = FALSE,
   warning = FALSE,
   fig.path = 'results-figs/'
 )
 
+read_chunk("models/overall.R")
+read_chunk("models/proposition.R")
+read_chunk("models/picture.R")
+read_chunk("models/rts.R")
+
 library(dplyr)
 library(ggplot2)
-library(scales)
 library(lme4)
 library(broom)
 
 devtools::load_all("dualverification")
-
-# Color scheme
-light_blue <- "#9ecae1"
-dark_blue <- "#08519c"
-light_green <- "#a1d99b"
-dark_green <- "#006d2c"
-
-bar_fill_values <- c(dark_green, light_green, dark_blue, light_blue)
-
-# Plot styling
-scale_y_error <- scale_y_continuous("Error Rate", breaks = seq(0, 0.1, by = .02), labels = percent)
-scale_y_rt <- scale_y_continuous("Reaction Time (ms)", breaks = seq(200, 600, by = 50))
-scale_x_mask <- scale_x_continuous("", breaks = c(-0.5, 0.5), labels = c("Blank Screen", "Visual Interference"))
-scale_fill_featmask <- scale_fill_manual(values = bar_fill_values)
-
-rt_lim <- c(210, 490)
-
-base_theme <- theme_minimal() +
-  theme(
-    axis.ticks = element_blank(),
-    legend.position = "none"
-  )
-```
-
-```{r}
-# data(dualverification)
 dualverification <- compile("experiment/data/") %>%
   clean %>% 
   recode %>%
@@ -57,14 +37,7 @@ dualverification <- compile("experiment/data/") %>%
 
 # Overall results
 
-```{r, overall}
-ggplot(dualverification, aes(x = mask_c, y = is_error, fill = feat_mask)) +
-  geom_bar(stat = "summary", fun.y = "mean", alpha = 0.6) +
-  facet_grid(feat_label ~ response_label) +
-  scale_x_mask +
-  scale_y_error +
-  scale_fill_featmask +
-  base_theme
+```{r, overall-plot}
 ```
 
 # Answer proposition (replication)
@@ -76,46 +49,18 @@ have expected error rates on the blank screen trials to be equivalent. I don't
 have a good explanation for why error rates on the nomask trials would be
 so much higher in this experiment.
 
-```{r, prompt}
-ggplot(filter(dualverification, response_type == "prompt"),
-       aes(x = mask_c, y = is_error, fill = feat_mask)) +
-  geom_bar(stat = "summary", fun.y = "mean", alpha = 0.6) +
-  facet_wrap("feat_label") +
-  scale_x_mask +
-  scale_y_error +
-  scale_fill_featmask +
-  base_theme +
-  ggtitle("Answer proposition")
+```{r, proposition-mod, echo = 1}
 ```
 
-```{r, echo = 1}
-prompt_mod <- glmer(is_error ~ feat_c * mask_c + (1|subj_id),
-                    data = filter(dualverification, response_type == "prompt"),
-                    family = binomial)
-tidy(prompt_mod, effect = "fixed") %>%
-  add_sig_stars
+```{r, proposition-plot}
 ```
 
 # Verify picture
 
-```{r, picture}
-ggplot(filter(dualverification, response_type == "pic"),
-       aes(x = mask_c, y = is_error, fill = feat_mask)) +
-  geom_bar(stat = "summary", fun.y = "mean", alpha = 0.6) +
-  facet_wrap("feat_label") +
-  scale_x_mask +
-  scale_y_error +
-  scale_fill_featmask +
-  base_theme +
-  ggtitle("Verify picture")
+```{r, pic-mod, echo = 1}
 ```
 
-```{r, echo = 1}
-pic_mod <- glmer(is_error ~ feat_c * mask_c + (1|subj_id),
-                 data = filter(dualverification, response_type == "pic"),
-                 family = binomial)
-tidy(pic_mod, effects = "fixed") %>%
-  add_sig_stars
+```{r, pic-plot}
 ```
 
 # Reaction times
@@ -135,61 +80,24 @@ There aren't any main effects of knowledge type in either task. I know we can't
 run with a null effect, but it is nice to know that there is no evidence in 
 RTs to support the hypothesis that the visual questions are just harder.
 
-```{r, rts}
-ggplot(dualverification, aes(x = mask_c, y = rt, fill = feat_mask)) +
-  geom_bar(stat = "summary", fun.y = "mean", alpha = 0.6) +
-  facet_grid(feat_label ~ response_label) +
-  coord_cartesian(ylim = rt_lim) +
-  scale_x_mask +
-  scale_y_rt +
-  scale_fill_featmask +
-  base_theme
+```{r, overall-rts-mod, echo = 1}
 ```
 
-```{r, rts-prompt}
-ggplot(filter(dualverification, response_type == "prompt"),
-       aes(x = mask_c, y = rt, fill = feat_mask)) +
-  geom_bar(stat = "summary", fun.y = "mean", alpha = 0.6) +
-  facet_wrap("feat_label") +
-  coord_cartesian(ylim = rt_lim) +
-  scale_x_mask +
-  scale_y_rt +
-  scale_fill_featmask +
-  base_theme +
-  ggtitle("Answer proposition")
+```{r, overall-rts-plot}
 ```
 
-```{r, echo = 1:2}
-# Answer proposition
-rt_prompt <- lmer(rt ~ feat_c * mask_c + (1|subj_id),
-                  data = filter(dualverification, response_type == "prompt"))
-tidy(rt_prompt, effects = "fixed")
+## Reaction times to answer propositions
+
+```{r, proposition-rts-mod, echo = 1}
 ```
 
-```{r, rts-pic}
-ggplot(filter(dualverification, response_type == "pic"),
-       aes(x = mask_c, y = rt, fill = feat_mask)) +
-  geom_bar(stat = "summary", fun.y = "mean", alpha = 0.6) +
-  facet_wrap("feat_label") +
-  coord_cartesian(ylim = rt_lim) +
-  scale_x_mask +
-  scale_y_rt +
-  scale_fill_featmask +
-  base_theme +
-  ggtitle("Verify picture")
+```{r, proposition-rts-plot}
 ```
 
-```{r, echo = 1:2}
-# Verify picture
-rt_pic <- lmer(rt ~ feat_c * mask_c + (1|subj_id),
-               data = filter(dualverification, response_type == "pic"))
-tidy(rt_pic, effects = "fixed")
+## Reaction times to verify pictures
+
+```{r, picture-rts-mod, echo = 1}
 ```
 
-### Effect of mask across all trials
-
-```{r, echo = 1}
-rt_pic <- lmer(rt ~ feat_c * mask_c + (1|subj_id/response_type),
-               data = dualverification)
-tidy(rt_pic, effects = "fixed")
+```{r, picture-rts-plot}
 ```
