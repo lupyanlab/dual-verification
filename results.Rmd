@@ -1,7 +1,7 @@
 ---
 title: "Dual Verification Results"
 author: "Pierce Edmiston"
-date: "November 12, 2015"
+date: "`r Sys.Date()`"
 output:
   html_document:
     theme: flatly
@@ -31,10 +31,13 @@ dark_green <- "#006d2c"
 
 bar_fill_values <- c(dark_green, light_green, dark_blue, light_blue)
 
-# Plotting helpers
-scale_y_error <- scale_y_continuous("Error Rate", labels = percent)
+# Plot styling
+scale_y_error <- scale_y_continuous("Error Rate", breaks = seq(0, 0.1, by = .02), labels = percent)
+scale_y_rt <- scale_y_continuous("Reaction Time (ms)", breaks = seq(200, 600, by = 50))
 scale_x_mask <- scale_x_continuous("", breaks = c(-0.5, 0.5), labels = c("Blank Screen", "Visual Interference"))
 scale_fill_featmask <- scale_fill_manual(values = bar_fill_values)
+
+rt_lim <- c(210, 490)
 
 base_theme <- theme_minimal() +
   theme(
@@ -65,6 +68,13 @@ ggplot(dualverification, aes(x = mask_c, y = is_error, fill = feat_mask)) +
 ```
 
 # Answer proposition (replication)
+
+It doesn't look like we are replicating the `feat_type:mask_type` interation.
+There is a huge main effect, such that errors on visual knowledge questions
+were significantly more likely. Based on the results of Experiment 2 we would
+have expected error rates on the blank screen trials to be equivalent. I don't
+have a good explanation for why error rates on the nomask trials would be
+so much higher in this experiment.
 
 ```{r, prompt}
 ggplot(filter(dualverification, response_type == "prompt"),
@@ -106,4 +116,80 @@ pic_mod <- glmer(is_error ~ feat_c * mask_c + (1|subj_id),
                  family = binomial)
 tidy(pic_mod, effects = "fixed") %>%
   add_sig_stars
+```
+
+# Reaction times
+
+The picture task took longer than the proposition task, which was surprising
+to me until I remembered that pictures only appeared on 25% of the trials,
+so they are probably slower because they were rare.
+
+A frustrating finding is that the mask made people faster across the board. It
+seems that the offset of the mask is a more salient trigger for when to expect
+the onset of the response window than the perceived offset of the auditory cue,
+even though the length of the trial depends on the length of the auditory cues,
+i.e., the mask is not shown for the same duration on every trial. The offset of
+the mask is exactly contingent on the offset of the cue.
+
+There aren't any main effects of knowledge type in either task. I know we can't
+run with a null effect, but it is nice to know that there is no evidence in 
+RTs to support the hypothesis that the visual questions are just harder.
+
+```{r, rts}
+ggplot(dualverification, aes(x = mask_c, y = rt, fill = feat_mask)) +
+  geom_bar(stat = "summary", fun.y = "mean", alpha = 0.6) +
+  facet_grid(feat_label ~ response_label) +
+  coord_cartesian(ylim = rt_lim) +
+  scale_x_mask +
+  scale_y_rt +
+  scale_fill_featmask +
+  base_theme
+```
+
+```{r, rts-prompt}
+ggplot(filter(dualverification, response_type == "prompt"),
+       aes(x = mask_c, y = rt, fill = feat_mask)) +
+  geom_bar(stat = "summary", fun.y = "mean", alpha = 0.6) +
+  facet_wrap("feat_label") +
+  coord_cartesian(ylim = rt_lim) +
+  scale_x_mask +
+  scale_y_rt +
+  scale_fill_featmask +
+  base_theme +
+  ggtitle("Answer proposition")
+```
+
+```{r, echo = 1:2}
+# Answer proposition
+rt_prompt <- lmer(rt ~ feat_c * mask_c + (1|subj_id),
+                  data = filter(dualverification, response_type == "prompt"))
+tidy(rt_prompt, effects = "fixed")
+```
+
+```{r, rts-pic}
+ggplot(filter(dualverification, response_type == "pic"),
+       aes(x = mask_c, y = rt, fill = feat_mask)) +
+  geom_bar(stat = "summary", fun.y = "mean", alpha = 0.6) +
+  facet_wrap("feat_label") +
+  coord_cartesian(ylim = rt_lim) +
+  scale_x_mask +
+  scale_y_rt +
+  scale_fill_featmask +
+  base_theme +
+  ggtitle("Verify picture")
+```
+
+```{r, echo = 1:2}
+# Verify picture
+rt_pic <- lmer(rt ~ feat_c * mask_c + (1|subj_id),
+               data = filter(dualverification, response_type == "pic"))
+tidy(rt_pic, effects = "fixed")
+```
+
+### Effect of mask across all trials
+
+```{r, echo = 1}
+rt_pic <- lmer(rt ~ feat_c * mask_c + (1|subj_id/response_type),
+               data = dualverification)
+tidy(rt_pic, effects = "fixed")
 ```
