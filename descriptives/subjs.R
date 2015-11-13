@@ -1,0 +1,59 @@
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+
+devtools::load_all("dualverification")
+
+dualverification <- compile("experiment/data") %>%
+	clean
+
+subjs <- dualverification %>%
+	group_by(subj_id) %>%
+	summarize(
+		rt = mean(rt, na.rm = TRUE),
+		error = mean(is_error, na.rm = TRUE)
+	) %>%
+	mutate(
+		rank_rt = rank(rt),
+		rank_error = rank(error, ties = "first")
+	)
+
+rank_axis_breaks <- c(1, seq(5, nrow(subjs), by = 5))
+scale_x_subj_rank <- scale_x_continuous("Rank", breaks = rank_axis_breaks)
+subj_xlim <- c(0.5, nrow(subjs) + 2.5)
+subj_theme <- theme_minimal() +
+  theme(
+    axis.ticks = element_blank(),
+    legend.position = "none"
+  )
+
+ggplot(subjs, aes(x = rank_rt, y = rt, color = subj_id)) +
+  geom_point +
+  geom_text(aes(label = subj_id), hjust = 0, angle = 45) +
+  scale_x_subj_rank +
+  coord_cartesian(xlim = subj_xlim) +
+  subj_theme
+ggsave("descriptives/subjs-rt.png")
+
+ggplot(subjs, aes(x = rank_error, y = error, color = subj_id)) +
+  geom_point() +
+	geom_text(aes(label = subj_id), hjust = 0, angle = 45) +
+  scale_x_subj_rank +
+  coord_cartesian(xlim = subj_xlim, ylim = c(0, 0.24)) +
+  subj_theme
+ggsave("descriptives/subjs-error.png")
+
+subjs_parallel <- subjs %>%
+  select(-(rt:error)) %>%
+  gather(rank_type, rank_value, -subj_id) %>%
+  mutate(rank_type = factor(rank_type, levels = c("rank_error", "rank_rt")))
+
+ggplot(subjs_parallel, aes(x = rank_type, y = rank_value, color = subj_id)) +
+  geom_line(aes(group = subj_id)) +
+  geom_text(aes(label = subj_id),
+            data = filter(subjs_parallel, rank_type == "rank_error"),
+            hjust = 1) +
+  scale_x_discrete("", labels = c("Error", "RT")) +
+  scale_y_continuous("Rank", breaks = rank_axis_breaks) +
+  subj_theme
+ggsave("descriptives/subjs-parallel.png")
