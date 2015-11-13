@@ -30,12 +30,14 @@ library(broom)
 devtools::load_all("dualverification")
 dualverification <- compile("experiment/data/") %>%
   clean %>% 
-  recode %>%
-  # Combine feat_type and mask_type for colors in the plot
-  mutate(feat_mask = paste(feat_type, mask_type, sep = ":"))
+  recode
 ```
 
 # Overall results
+
+```{r, overall-mod, echo = 1}
+
+```
 
 ```{r, overall-plot}
 ```

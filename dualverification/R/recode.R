@@ -7,7 +7,9 @@ recode <- function(frame) {
   frame %>% 
     recode_feat_type %>%
     recode_mask_type %>%
-    recode_response_type
+    recode_response_type %>%
+    # Combine feat_type and mask_type for colors in the plot
+    mutate(feat_mask = paste(feat_type, mask_type, sep = ":"))
 }
 
 recode_feat_type <- function(frame) {
@@ -30,7 +32,8 @@ recode_mask_type <- function(frame) {
 recode_response_type <- function(frame) {
   response_type_map <- dplyr::data_frame(
     response_type = c("prompt", "pic"),
-    response_label = c("Answer proposition", "Verify picture")
+    response_label = c("Answer proposition", "Verify picture"),
+    response_c = c(-0.5, 0.5)
   )
   dplyr::left_join(frame, response_type_map)
 }

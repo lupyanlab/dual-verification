@@ -8,9 +8,7 @@ devtools::load_all("dualverification")
 # experiment in progress, load from source:
 dualverification <- compile("experiment/data/") %>%
   clean %>% 
-  recode %>%
-  # Combine feat_type and mask_type for colors in the plot
-  mutate(feat_mask = paste(feat_type, mask_type, sep = ":"))
+  recode
 
 # ---- proposition-mod
 prompt_mod <- glmer(is_error ~ feat_c * mask_c + (1|subj_id),
@@ -20,9 +18,13 @@ tidy(prompt_mod, effect = "fixed") %>%
   add_sig_stars
 
 # ---- proposition-plot
+pred_error <- format_mod_preds(prompt_mod)
+
 ggplot(filter(dualverification, response_type == "prompt"),
        aes(x = mask_c, y = is_error, fill = feat_mask)) +
   geom_bar(stat = "summary", fun.y = "mean", alpha = 0.6) +
+  geom_pointrange(aes(y = estimate, ymin = estimate-se, ymax = estimate+se),
+                 data = pred_error) +
   facet_wrap("feat_label") +
   scale_x_mask +
   scale_y_error +

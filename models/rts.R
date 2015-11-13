@@ -8,18 +8,20 @@ devtools::load_all("dualverification")
 # experiment in progress, load from source:
 dualverification <- compile("experiment/data/") %>%
   clean %>% 
-  recode %>%
-  # Combine feat_type and mask_type for colors in the plot
-  mutate(feat_mask = paste(feat_type, mask_type, sep = ":"))
+  recode
 
 # ---- overall-rts-mod
-overall_rt <- lmer(rt ~ feat_c * mask_c + (1|subj_id/response_type),
+overall_rt <- lmer(rt ~ feat_c * mask_c + response_c + (1|subj_id),
                    data = dualverification)
 tidy(overall_rt, effects = "fixed")
 
 # ---- overall-rts-plot
+overall_error <- format_mod_preds(overall_rt)
+
 ggplot(dualverification, aes(x = mask_c, y = rt, fill = feat_mask)) +
   geom_bar(stat = "summary", fun.y = "mean", alpha = 0.6) +
+  geom_pointrange(aes(y = estimate, ymin = estimate-se, ymax = estimate+se),
+                  data = overall_error) +
   facet_grid(feat_label ~ response_label) +
   coord_cartesian(ylim = rt_lim) +
   scale_x_mask +
@@ -33,9 +35,13 @@ prompt_rt <- lmer(rt ~ feat_c * mask_c + (1|subj_id),
 tidy(prompt_rt, effects = "fixed")
 
 # ---- proposition-rts-plot
+prompt_error <- format_mod_preds(prompt_rt)
+
 ggplot(filter(dualverification, response_type == "prompt"),
        aes(x = mask_c, y = rt, fill = feat_mask)) +
   geom_bar(stat = "summary", fun.y = "mean", alpha = 0.6) +
+  geom_pointrange(aes(y = estimate, ymin = estimate-se, ymax = estimate+se),
+                  data = prompt_error) +
   facet_wrap("feat_label") +
   coord_cartesian(ylim = rt_lim) +
   scale_x_mask +
@@ -50,9 +56,13 @@ pic_rt <- lmer(rt ~ feat_c * mask_c + (1|subj_id),
 tidy(pic_rt, effects = "fixed")
 
 # ---- picture-rts-plot
+pic_error <- format_mod_preds(pic_rt)
+
 ggplot(filter(dualverification, response_type == "pic"),
        aes(x = mask_c, y = rt, fill = feat_mask)) +
   geom_bar(stat = "summary", fun.y = "mean", alpha = 0.6) +
+  geom_pointrange(aes(y = estimate, ymin = estimate-se, ymax = estimate+se),
+                  data = pic_error) +
   facet_wrap("feat_label") +
   coord_cartesian(ylim = rt_lim) +
   scale_x_mask +
