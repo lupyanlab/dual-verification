@@ -20,6 +20,7 @@ library(ggplot2)
 library(scales)
 library(lme4)
 library(broom)
+library(AICcmodavg)
 
 devtools::load_all("dualverification")
 
@@ -44,6 +45,22 @@ base_theme <- theme_minimal() +
     axis.ticks = element_blank(),
     legend.position = "none"
   )
+
+
+format_preds <- function(glmerMod) {
+  x_preds <- data_frame(
+    feat_type = c("visual", "nonvisual"),
+    mask_type = c("mask", "nomask")
+  ) %>%
+    recode_feat_type %>%
+    recode_mask_type
+  
+  predictSE(glmerMod, x_preds, se = TRUE) %>% 
+    as_data_frame %>%
+    rename(estimate = fit, se = se.fit) %>%
+    cbind(x_preds, .)
+}
+
 ```
 
 ```{r}
@@ -76,7 +93,13 @@ have expected error rates on the blank screen trials to be equivalent. I don't
 have a good explanation for why error rates on the nomask trials would be
 so much higher in this experiment.
 
-```{r, prompt}
+```{r, prompt, echo = 1}
+prompt_mod <- glmer(is_error ~ feat_c * mask_c + (1|subj_id),
+                    data = filter(dualverification, response_type == "prompt"),
+                    family = binomial)
+
+prompt_mod_error <- format_preds(prompt_mod)
+
 ggplot(filter(dualverification, response_type == "prompt"),
        aes(x = mask_c, y = is_error, fill = feat_mask)) +
   geom_bar(stat = "summary", fun.y = "mean", alpha = 0.6) +
@@ -86,12 +109,7 @@ ggplot(filter(dualverification, response_type == "prompt"),
   scale_fill_featmask +
   base_theme +
   ggtitle("Answer proposition")
-```
 
-```{r, echo = 1}
-prompt_mod <- glmer(is_error ~ feat_c * mask_c + (1|subj_id),
-                    data = filter(dualverification, response_type == "prompt"),
-                    family = binomial)
 tidy(prompt_mod, effect = "fixed") %>%
   add_sig_stars
 ```
