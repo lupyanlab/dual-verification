@@ -1,0 +1,42 @@
+version,subj_id,seed,computer,date,initials,compliance,notes
+1,MDT101,101,Kramer,11/12/2015,PME,5,some of the question recordings were untrimmed
+1,MDT102,102,George,11/12/2015,PME,5,some of the question recordings were untrimmed
+1,MDT103,103,Elaine,11/12/2015,PME,5,some of the question recordings were untrimmed
+1,MDT104,104,Kramer,11/12/2015,PME,5,some of the question recordings were untrimmed
+1,MDT105,105,George,11/12/2015,PME,3,some of the question recordings were untrimmed; on his phone a lot
+1,MDT106,106,Kramer,11/12/2015,SK,5,
+1,MDT107,107,George,11/12/2015,SK,5,
+1,MDT108,108,Elaine,11/12/2015,SK,5,
+1,MDT109,109,Kramer,11/12/2015,SK,5,
+1,MDT110,110,George,11/12/2015,SK,5,
+1,MDT111,111,Elaine,11/12/2015,SK,5,
+1,MDT112,112,Kramer,11/12/2015,SK,5,
+1,MDT113,113,George,11/12/2015,SK,5,
+1,MDT114,114,Elaine,11/12/2015,SK,5,
+1,MDT115,115,Jerry,11/12/2015,SK,4,"Late, still good participant, hopefully not hurried in performance"
+1,MDT116,116,Kramer,11/12/2015,JR,5,
+1,MDT117,117,George,11/12/2015,JR,5,
+1,MDT118,118,Elaine,11/12/2015,JR,5,
+1,MDT119,119,Jerry,11/12/2015,JR,5,
+1,MDT120,120,Kramer,11/12/2015,JR,5,
+1,MDT121,121,George,11/12/2015,JR,5,
+1,MDT122,122,Elaine,11/12/2015,JR,5,
+1,MDT123,123,Kramer,11/13/2015,NS,5,
+1,MDT124,124,Elaine,11/13/2015,NS,5,
+1,MDT125,125,"George
+",11/13/2015,NS,5,
+1,MDT126,126,Kramer,11/13/2015,SK,5,*experimenter was on the phone to resolve technical difficulties
+1,MDT127,127,Elaine,11/13/2015,SK,5,*experimenter was on the phone to resolve technical difficulties
+1,MDT128,128,Jerry,11/13/2015,SK,5,*experimenter was on the phone to resolve technical difficulties
+1,MDT129,129,Kramer,11/13/2015,SK,5,
+1,MDT130,130,George,11/13/2015,SK,5,
+1,MDT131,131,Elaine,11/13/2015,SK,5,
+1,MDT132,132,Jerry,11/13/2015,SK,5,
+1,MDT133,133,Kramer,11/13/2015,SK,5,
+1,MDT134,134,George,11/13/2015,SK,5,The post-trial survey pulled up an administrative version! The Ss could have edited the answers
+1,MDT135,135,Elaine,11/13/2015,SK,4,"was really fidgety, tired, rubbing eyes and nose a lot"
+1,MDT136,136,Jerry,11/13/2015,SK,5,
+1,MDT137,137,Kramer,11/13/2015,SK,5,
+1,MDT138,138,George,11/13/2015,SK,5,
+1,MDT139,139,Elaine,11/13/2015,SK,5,
+1,MDT140,140,Jerry,11/13/2015,SK,,

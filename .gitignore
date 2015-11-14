@@ -3,6 +3,7 @@ sample_trials.csv
 *.pyc
 *.pickle
 *.html
+*.json
 .Rproj.user
 .Rhistory
 .RData

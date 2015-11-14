@@ -13,6 +13,7 @@ recode <- function(frame) {
 recode_feat_type <- function(frame) {
   feat_type_map <- dplyr::data_frame(
     feat_type = c("nonvisual", "visual"),
+    feat_label = c("Encyclopedic Knowledge", "Visual Knowledge"),
     feat_c = c(-0.5, 0.5)
   )
   dplyr::left_join(frame, feat_type_map)
@@ -34,3 +35,10 @@ recode_response_type <- function(frame) {
   dplyr::left_join(frame, response_type_map)
 }
 
+add_sig_stars <- function(frame) {
+  frame %>% mutate(
+    sig = ifelse(p.value > 0.05, "",
+          ifelse(p.value > 0.01, "*",
+          ifelse(p.value > 0.001, "**",
+                 "***"))))
+}
