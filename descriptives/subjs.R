@@ -30,7 +30,7 @@ subj_theme <- theme_minimal() +
 
 ggplot(subjs, aes(x = rank_rt, y = rt, color = subj_id)) +
   geom_point() +
-  geom_text(aes(label = subj_id), hjust = 0, angle = 45) +
+  geom_text(aes(label = subj_id), hjust = 0, angle = 45, size = 3) +
   scale_x_subj_rank +
   scale_y_continuous("Average RT (ms)") +
   coord_cartesian(xlim = subj_xlim, ylim = c(120, 590)) +
@@ -39,7 +39,7 @@ ggsave("descriptives/subjs-rt.png")
 
 ggplot(subjs, aes(x = rank_error, y = error, color = subj_id)) +
   geom_point() +
-	geom_text(aes(label = subj_id), hjust = 0, angle = 45) +
+	geom_text(aes(label = subj_id), hjust = 0, angle = 45, size = 3) +
   scale_x_subj_rank +
   scale_y_continuous("Error Rate", labels = percent) +
   coord_cartesian(xlim = subj_xlim, ylim = c(0, 0.24)) +
