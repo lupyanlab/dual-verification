@@ -16,10 +16,19 @@ tidy(prompt_mod, effect = "fixed") %>%
 # ---- proposition-plot
 pred_error <- format_mod_preds(prompt_mod)
 
+# hack!
+# For some reason, model predictions are not
+# hitting the sample means.
+pred_error <- dualverification %>%
+  filter(response_type == "prompt") %>%
+  group_by(feat_c, mask_c) %>%
+  summarize(mean_error = mean(is_error, na.rm = TRUE)) %>%
+  left_join(pred_error, .)
+  
 ggplot(filter(dualverification, response_type == "prompt"),
        aes(x = mask_c, y = is_error, fill = feat_mask)) +
   geom_bar(stat = "summary", fun.y = "mean", alpha = 0.6) +
-  geom_pointrange(aes(y = estimate, ymin = estimate-se, ymax = estimate+se),
+  geom_linerange(aes(y = mean_error, ymin = mean_error-se, ymax = mean_error+se),
                  data = pred_error) +
   facet_wrap("feat_label") +
   scale_x_mask +
