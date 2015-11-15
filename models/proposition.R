@@ -4,11 +4,7 @@ library(lme4)
 library(broom)
 
 devtools::load_all("dualverification")
-# data(dualverification)
-# experiment in progress, load from source:
-dualverification <- compile("experiment/data/") %>%
-  clean %>% 
-  recode
+data(dualverification)
 
 # ---- proposition-mod
 prompt_mod <- glmer(is_error ~ feat_c * mask_c + (1|subj_id),

@@ -2,11 +2,7 @@ library(dplyr)
 library(ggplot2)
 
 devtools::load_all("dualverification")
-# data(dualverification)
-# experiment in progress, load from source:
-dualverification <- compile("experiment/data/") %>%
-  clean %>% 
-  recode
+data(dualverification)
 
 # ---- overall-mod
 overall_mod <- glmer(is_error ~ feat_c * mask_c + response_c + (1|subj_id),

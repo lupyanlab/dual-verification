@@ -9,7 +9,6 @@ output:
 
 ```{r, echo = FALSE, message = FALSE}
 library(knitr)
-
 opts_chunk$set(
   echo = FALSE,
   message = FALSE,
@@ -28,9 +27,7 @@ library(lme4)
 library(broom)
 
 devtools::load_all("dualverification")
-dualverification <- compile("experiment/data/") %>%
-  clean %>% 
-  recode
+data(dualverification)
 ```
 
 # Overall results

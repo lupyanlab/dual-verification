@@ -4,13 +4,7 @@ library(lme4)
 library(broom)
 
 devtools::load_all("dualverification")
-# data(dualverification)
-# experiment in progress, load from source:
-dualverification <- compile("experiment/data/") %>%
-  clean %>% 
-  recode %>%
-  # Combine feat_type and mask_type for colors in the plot
-  mutate(feat_mask = paste(feat_type, mask_type, sep = ":"))
+data(dualverification)
 
 # ---- pic-mod
 pic_mod <- glmer(is_error ~ feat_c * mask_c + (feat_c * mask_c|subj_id),
