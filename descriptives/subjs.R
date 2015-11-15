@@ -4,9 +4,7 @@ library(scales)
 library(tidyr)
 
 devtools::load_all("dualverification")
-
-dualverification <- compile("experiment/data") %>%
-	clean
+data(dualverification)
 
 subjs <- dualverification %>%
 	group_by(subj_id) %>%
