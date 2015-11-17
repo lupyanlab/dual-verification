@@ -1,9 +1,10 @@
 clean <- function(frame) {
   frame %>%
+    filter(block_type != "practice") %>%
     mutate(
       # Drop RT on incorrect response trials
       rt = ifelse(is_correct, rt, NA),
-      
+
       # Drop accuracy on timeout trials
       is_correct = ifelse(response == "timeout", NA, is_correct),
 
