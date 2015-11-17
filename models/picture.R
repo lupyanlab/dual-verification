@@ -36,3 +36,23 @@ ggplot(filter(dualverification, response_type == "pic"),
   scale_fill_featmask +
   base_theme +
   ggtitle("Verify picture")
+
+# ---- cue-validity
+lmer(rt ~ mask_c * correct_response + (1|subj_id),
+     data = dualverification) %>%
+  summary
+
+glmer(is_error ~ mask_c * correct_response + (1|subj_id),
+      data = dualverification,
+      family = binomial) %>%
+  summary
+# errors were made primarily on the "reject picture" trials
+
+glmer(is_error ~ mask_c * correct_response * feat_c + (1|subj_id),
+      data = dualverification,
+      family = binomial) %>%
+  summary
+
+lmer(rt ~ mask_c * correct_response * feat_c + (1|subj_id),
+     data = dualverification) %>%
+  summary
