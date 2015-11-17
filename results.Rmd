@@ -22,6 +22,7 @@ read_chunk("models/proposition.R")
 read_chunk("models/picture.R")
 read_chunk("models/visual.R")
 read_chunk("models/encyclopedic.R")
+read_chunk("models/continuous.R")
 read_chunk("models/rts.R")
 
 library(dplyr)
@@ -31,6 +32,9 @@ library(broom)
 
 devtools::load_all("dualverification")
 data(dualverification)
+data(proposition_ratings)
+
+dualverification <- left_join(dualverification, proposition_ratings)
 ```
 
 # Overall results
@@ -49,12 +53,22 @@ data(dualverification)
 ```{r, proposition-plot}
 ```
 
-## Answers to **true** propositions
+## **True** propositions only
 
 ```{r, true-proposition-mod, echo = 1}
 ```
 
 ```{r, true-proposition-plot}
+```
+
+## By amount of visual knowledge
+
+```{r, amount-visual-mod, echo = 1}
+```
+
+## By amount of encyclopedic knowledge
+
+```{r, amount-nonvisual-mod, echo = 1}
 ```
 
 # Verify picture
@@ -89,7 +103,7 @@ data(dualverification)
 ```{r, overall-rts-plot}
 ```
 
-## Reaction times to answer propositions
+## Answer propositions
 
 ```{r, proposition-rts-mod, echo = 1}
 ```
@@ -97,7 +111,7 @@ data(dualverification)
 ```{r, proposition-rts-plot}
 ```
 
-## Reaction times to verify pictures
+## Verify pictures
 
 ```{r, picture-rts-mod, echo = 1}
 ```
