@@ -4,6 +4,7 @@ author: "Pierce Edmiston"
 date: "`r Sys.Date()`"
 output:
   html_document:
+    toc: true
     theme: flatly
 ---
 
@@ -19,6 +20,8 @@ opts_chunk$set(
 read_chunk("models/overall.R")
 read_chunk("models/proposition.R")
 read_chunk("models/picture.R")
+read_chunk("models/visual.R")
+read_chunk("models/encyclopedic.R")
 read_chunk("models/rts.R")
 
 library(dplyr)
@@ -33,7 +36,6 @@ data(dualverification)
 # Overall results
 
 ```{r, overall-mod, echo = 1}
-
 ```
 
 ```{r, overall-plot}
@@ -41,17 +43,18 @@ data(dualverification)
 
 # Answer proposition (replication)
 
-It doesn't look like we are replicating the `feat_type:mask_type` interation.
-There is a huge main effect, such that errors on visual knowledge questions
-were significantly more likely. Based on the results of Experiment 2 we would
-have expected error rates on the blank screen trials to be equivalent. I don't
-have a good explanation for why error rates on the nomask trials would be
-so much higher in this experiment.
-
 ```{r, proposition-mod, echo = 1}
 ```
 
 ```{r, proposition-plot}
+```
+
+## Answers to **true** propositions
+
+```{r, true-proposition-mod, echo = 1}
+```
+
+```{r, true-proposition-plot}
 ```
 
 # Verify picture
@@ -62,22 +65,23 @@ so much higher in this experiment.
 ```{r, pic-plot}
 ```
 
+# Visual knowledge
+
+```{r, visual-mod, echo = 1}
+```
+
+```{r, visual-plot}
+```
+
+# Encyclopedic knowledge
+
+```{r, nonvisual-mod, echo = 1}
+```
+
+```{r, nonvisual-plot}
+```
+
 # Reaction times
-
-The picture task took longer than the proposition task, which was surprising
-to me until I remembered that pictures only appeared on 25% of the trials,
-so they are probably slower because they were rare.
-
-A frustrating finding is that the mask made people faster across the board. It
-seems that the offset of the mask is a more salient trigger for when to expect
-the onset of the response window than the perceived offset of the auditory cue,
-even though the length of the trial depends on the length of the auditory cues,
-i.e., the mask is not shown for the same duration on every trial. The offset of
-the mask is exactly contingent on the offset of the cue.
-
-There aren't any main effects of knowledge type in either task. I know we can't
-run with a null effect, but it is nice to know that there is no evidence in 
-RTs to support the hypothesis that the visual questions are just harder.
 
 ```{r, overall-rts-mod, echo = 1}
 ```
