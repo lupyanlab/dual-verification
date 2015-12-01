@@ -1,12 +1,11 @@
 #' Recode all of the factors in the experiment.
-#' 
+#'
 #' @param frame A data.frame with columns: feat_type, mask_type, response_type
-#' @importFrom dplyr `%>%`
 #' @export
 recode <- function(frame) {
   try(feat_mask <- with(frame, paste(feat_type, mask_type, sep = ":")))
-  
-  frame <- frame %>% 
+
+  frame <- frame %>%
     recode_feat_type %>%
     recode_mask_type %>%
     recode_response_type

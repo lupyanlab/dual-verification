@@ -5,7 +5,6 @@
 #' and response_type (pic, prompt). Character combinations
 #' are sent to the recode function in this package.
 #'
-#' @importFrom dplyr `%>%`
 #' @param mod Model (lmer, glmer) to pass to predict function.
 #' @param response_type pic or prompt.
 #' @return a tidy data frame containing all x predictors and y predictions.
