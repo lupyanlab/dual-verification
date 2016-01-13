@@ -69,3 +69,15 @@ ggplot(filter(dualverification, response_type == "prompt", correct_response == "
   scale_fill_featmask +
   base_theme +
   ggtitle("Answer true proposition")
+
+# ---- individual-diffs
+prompt_mod_coefs <- dualverification %>%
+  group_by(subj_id) %>%
+  do(prompt_mod = glm(is_error ~ feat_c * mask_c, family = binomial, data = .)) %>%
+  tidy(prompt_mod)
+
+ggplot(prompt_mod_coefs, aes(x = term, y = estimate, ymin = estimate-std.error,
+                             ymax = estimate+std.error, color = subj_id)) +
+  geom_pointrange(position = position_jitter(width = 0.5)) +
+  facet_wrap("term", scales = "free")
+
